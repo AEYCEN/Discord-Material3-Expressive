@@ -1,0 +1,20 @@
+Material 3 Expressive
+Copyright 2026 AEYCEN
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------------
+
+This product includes software developed by the ClearVision Team as part of
+ClearVision v7 (https://github.com/ClearVision/ClearVision-v7), licensed under
+the Apache License, Version 2.0.
+
+Specifically:
+
+  * src/backend/_classes.scss - the class-lookup machinery (class(), checkString(),
+    c(), C() and the debug_* helpers) is taken from ClearVision v7, which in turn
+    credits Zerthox for the original implementation. The class map itself is a
+    subset of ClearVision's, restricted to the classes this theme uses.
+
+  * The project layout (src/backend, src/start, dist/ distributable sources,
+    GitHub Pages publishing of the compiled stylesheet) follows ClearVision v7.

@@ -1,0 +1,15 @@
+// Metadata and import URLs live here and nowhere else.
+// The banner in main.scss, the distributable in dist/ and the @import URL that
+// ships to users are all generated from these values.
+
+$version: '1.0.0';
+$themeName: 'Material 3 Expressive';
+$author: 'AEYCEN';
+$desc: 'Material-You-inspired dark theme: primary-tinted surface tiers, three colour roles, mono for identifiers.';
+
+$repo: 'https://github.com/AEYCEN/Discord-Material3-Expressive';
+// GitHub Pages root. This is also the CSS @import host, so it must match
+// the `publish_dir` of .github/workflows/build.yml.
+$website: 'https://aeycen.github.io/Discord-Material3-Expressive';
+
+$mainImport: 'main.css'; // base import filename, published at $website/$mainImport

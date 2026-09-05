@@ -1,0 +1,123 @@
+@use '../src/start' as *;
+
+// User-facing distributable. Everything the end user pastes into Vencord's
+// QuickCSS lives here; the theme itself is fetched from GitHub Pages, so a
+// class-hash fix reaches users without them touching this file.
+
+/**
+ * @name #{$themeName}
+ * @author #{$author}
+ * @version #{$version}
+ * @description #{$desc}
+ * @source #{$repo}
+ * @website #{$website}
+ */
+
+/* IMPORT CSS */
+@import url("#{$website}/#{$mainImport}");
+
+/* SETTINGS
+   Everything below can be changed. Delete a line to fall back to the default. */
+:root {
+    /* COLOUR SEED
+       One hue drives every surface and the primary colour. Secondary keeps the same
+       hue with less chroma; tertiary sits 25° next to it (Material You). */
+    --t-hue: -187; /* seed hue in degrees, any value works [default: -187] */
+    --t-hue-secondary: var(--t-hue); /* hue for categories, voice, "connected" [default: var(--t-hue)] */
+    --t-hue-tertiary: calc(var(--t-hue) + 25); /* hue for mentions & unread [default: calc(var(--t-hue) + 25)] */
+
+    /* BACKGROUND IMAGE (optional)
+       Lower --t-surface-alpha to let the image show through:
+       0.72–0.85 looks like tinted glass, 1 = image only visible in the window frame. */
+    --t-background-image: none; /* url("https://…/image.jpg"); only raw.githubusercontent.com, *.github.io and i.imgur.com work reliably [default: none] */
+    --t-background-position: center; /* [default: center] */
+    --t-background-size: cover; /* [default: cover] */
+    --t-background-blur: 0px; /* e.g. 12px [default: 0px] */
+    --t-background-dim: 0.55; /* 0 = no dimming, 1 = fully darkened [default: 0.55] */
+    --t-surface-alpha: 1; /* opacity of surfaces 1–3, set below 1 when using an image [default: 1] */
+
+    /* MONOGRAM (optional)
+       Your name as a decorative element in the chat background. Set to "" to hide.
+       Uses Anurati if installed locally, otherwise Syncopate/Michroma (loaded from Google Fonts).
+       Hidden automatically when the chat is narrower than 420px. */
+    --t-monogram: "aeycen"; /* text in quotes [default: "aeycen"] */
+    --t-monogram-font: "Anurati", "Syncopate", "Michroma", sans-serif; /* [default: "Anurati", "Syncopate", "Michroma", sans-serif] */
+    --t-monogram-size: 96px; /* maximum size [default: 96px] */
+    --t-monogram-fluid: 11cqw; /* scales with chat width, --t-monogram-size stays the cap [default: 11cqw] */
+    --t-monogram-opacity: 0.07; /* 0.04 very subtle, 0.12 clearly visible [default: 0.07] */
+    --t-monogram-spacing: 0.25em; /* letter spacing [default: 0.25em] */
+    --t-monogram-x: flex-end; /* flex-start = left, center, flex-end = right [default: flex-end] */
+    --t-monogram-y: flex-end; /* flex-start = top, center, flex-end = bottom [default: flex-end] */
+
+    /* ROLE COLOUR READABILITY
+       Discord role colours are mapped to readable pastel tones while keeping their hue.
+       To disable set all three to 1. */
+    --t-role-contrast: 0.5; /* < 1 pulls dark and light colours towards the middle [default: 0.5] */
+    --t-role-lift: 1.7; /* brightness [default: 1.7] */
+    --t-role-saturate: 1.5; /* restores saturation lost by the contrast step [default: 1.5] */
+
+    /* STATUS COLOURS */
+    --t-success: hsl(150 45% 66%); /* online, connected [default: hsl(150 45% 66%)] */
+    --t-warning: hsl(42 85% 68%); /* idle [default: hsl(42 85% 68%)] */
+    --t-danger: hsl(2 90% 74%); /* dnd, destructive actions, hang up [default: hsl(2 90% 74%)] */
+    --t-streaming: hsl(268 70% 76%); /* streaming [default: hsl(268 70% 76%)] */
+
+    /* SHAPE
+       Expressive = radii follow hierarchy, not one value for everything. */
+    --t-radius-container: 20px; /* chat, sidebars, modals [default: 20px] */
+    --t-radius-card: 14px; /* cards, embeds, popouts [default: 14px] */
+    --t-radius-input: 12px; /* inputs, buttons [default: 12px] */
+    --t-radius-code: 8px; /* code blocks [default: 8px] */
+    --t-radius-pill: 999px; /* pills, selection, badges [default: 999px] */
+
+    /* FONTS (must be installed locally) */
+    --t-font-ui: "gg sans", "Inter", "Segoe UI", system-ui, sans-serif; /* [default: "gg sans", "Inter", "Segoe UI", system-ui, sans-serif] */
+    --t-font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, "gg mono", monospace; /* channel names, code [default: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, "gg mono", monospace] */
+
+    /* MOTION
+       Durations for the spring animations. Set all to 0ms to disable motion
+       (the theme also respects your OS "reduce motion" setting). */
+    --t-dur-fast: 220ms; /* hover, press, small elements [default: 220ms] */
+    --t-dur-base: 380ms; /* selection, popouts, most transitions [default: 380ms] */
+    --t-dur-slow: 560ms; /* large containers [default: 560ms] */
+}
+
+/* ADVANCED
+   The tokens below are derived from the seed hue and normally need no changes.
+   To override one, uncomment it inside the :root block above (or add your own :root).
+
+   Surface ladder (tier 0 = window frame … tier 5 = hover on popouts)
+   --t-surface-0: hsl(var(--t-hue) 22% 6%);
+   --t-surface-1: hsl(var(--t-hue) 20% 9% / var(--t-surface-alpha));
+   --t-surface-2: hsl(var(--t-hue) 18% 12% / var(--t-surface-alpha));
+   --t-surface-3: hsl(var(--t-hue) 16% 16% / var(--t-surface-alpha));
+   --t-surface-4: hsl(var(--t-hue) 15% 20%);
+   --t-surface-5: hsl(var(--t-hue) 14% 25%);
+
+   Text
+   --t-text-high: hsl(var(--t-hue) 30% 93%);
+   --t-text-mid: hsl(var(--t-hue) 18% 72%);
+   --t-text-low: hsl(var(--t-hue) 12% 50%);
+
+   Primary (selection, links, buttons, focus)
+   --t-primary: hsl(var(--t-hue) 100% 86%);
+   --t-on-primary: hsl(var(--t-hue) 55% 18%);
+   --t-primary-container: hsl(var(--t-hue) 42% 38%);
+   --t-on-primary-container: hsl(var(--t-hue) 100% 94%);
+
+   Secondary (categories, voice, speaking)
+   --t-secondary: hsl(var(--t-hue-secondary) 26% 74%);
+   --t-secondary-container: hsl(var(--t-hue-secondary) 22% 24%);
+   --t-on-secondary-container: hsl(var(--t-hue-secondary) 40% 90%);
+
+   Tertiary (mentions & unread)
+   --t-tertiary: hsl(var(--t-hue-tertiary) 60% 80%);
+   --t-on-tertiary: hsl(var(--t-hue-tertiary) 50% 14%);
+   --t-tertiary-container: hsl(var(--t-hue-tertiary) 34% 32%);
+   --t-on-tertiary-container: hsl(var(--t-hue-tertiary) 70% 93%);
+
+   Spring curves (linear() easing)
+   --t-spring-snappy
+   --t-spring-bouncy */
+
+/* ADD ADDITIONAL CSS BELOW HERE */

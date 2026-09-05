@@ -1,0 +1,3 @@
+# The CI compares the committed distributable against a fresh build. Normalise
+# line endings so that comparison cannot fail for Windows/Linux reasons alone.
+* text=auto eol=lf

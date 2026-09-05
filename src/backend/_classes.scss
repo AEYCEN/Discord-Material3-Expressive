@@ -1,0 +1,743 @@
+@use 'sass:string';
+@use 'sass:list';
+@use 'sass:map';
+@use 'sass:meta';
+
+////////////////////
+/// VERY IMPORTANT INFO FOR SEARCHING OR ADDING CLASS NAMES
+/// Remove the preceding dot before the class name!
+/// The function below adds that before CSS generation and thus is not needed
+/// Also if you've forked the original project, please commit to it upstream
+////////////////////
+
+/// Get a class from the Classes Map. Code stolen entirely from Zerthox.
+/// Changes to Zerthox's code:
+/// Class list lacks proceeding dot to allow for quick html element copy class list.
+/// Aliasing. You can start a string with "alias " and fill the rest out as if it was #{c(STRING HERE)}.
+/// Lists. You can uses lists for multiple classes to preform the same function. You can use [bracketed lists] for :where() and non-bracketed for :is().
+/// Minor SCSS syntax changes.
+/// Dirty trace. Add a ! to the start of a class to get the used location(s).
+/// Checks for sub-maps and throws error if that's true.
+/// Checks for a hash at front and spits out an ID rather than a class.
+///
+/// NOTE: Deprecated listings have @ at the start and cannot be combined with the dirty trace.
+/// It is strongly advised to use a different class, usually in a comment beside the class.
+/// Certain aliases may also be deprecated in the future.
+@function class($query, $alias: false) {
+  $class: $classes;
+  @each $el in $query {
+    $class: map.get($class, '#{$el}');
+    @if not $class {
+      @if $alias {
+        @error "Unknown alias \"#{$el}\" in category: #{$query}. Please fix the classes list.";
+      } @else {
+        @error "Unknown class or ID \"#{$el}\" in category: #{$query}. Was the classes file not saved?";
+      }
+    }
+  }
+  @if meta.type-of($class) == map {
+    @error "Map used as input: #{$query}. Please fix and try again.";
+  }
+  @if meta.type-of($class) == string {
+    @return checkString($class, $alias);
+  } @else if meta.type-of($class) == list {
+    // stuff for list would go here
+    $list: ':';
+    @if list.is-bracketed($class) {
+      $list: $list + 'where(';
+    } @else {
+      $list: $list + 'is(';
+    }
+    @each $item in $class {
+      $list: $list + checkString($item, $alias) + ',';
+    }
+    $list: string.slice($list, 1, -2) + ')'; // remove comma at end and add closing bracket
+    @return $list;
+  }
+}
+
+@function checkString($class, $alias: false) {
+  // debug locator string thingy
+  @if string.slice($class, 1, 1) == '!' or string.slice($class, 1, 1) == '@' {
+    @if string.slice($class, 1, 1) == '!' {
+      @warn "[DEBUG] The class, \"#{$class}\", was used.";
+    } @else if string.slice($class, 1, 1) == '@' {
+      @warn "[DEPRECATED] The specific selector used for \"#{$class}\" is deprecated and may be removed in the future.";
+    }
+    $class: string.slice($class, 2, -1);
+  }
+  @if string.slice($class, 1, 1) == '.' {
+    @error "Dot at start of string within list. Please fix and try again.";
+  }
+  @if string.slice($class, 1, 6) == 'alias ' {
+    // force error on already tested aliases to prevent loops
+    @if $alias == true {
+      @error "Issue caused by \"#{$class}\". Do not point aliases to other aliases as to prevent loops. Please fix this and try again.";
+    }
+    $aliasList: (); // create fake list to be thrown into function again
+    $aliasQuery: string.slice($class, 7, -1); // remove `alias ` from query
+    $spaceIndex: string.index($aliasQuery, $substring: ' '); // finds first space
+    @while $spaceIndex != null {
+      $item: string.slice($aliasQuery, 1, $spaceIndex - 1);
+      $aliasQuery: string.slice($aliasQuery, $spaceIndex + 1, -1);
+      $aliasList: list.append($aliasList, $item, space);
+      $spaceIndex: string.index($aliasQuery, $substring: ' '); // if not found this declared null
+    }
+    $aliasList: list.append($aliasList, $aliasQuery, space); // adds last item after @while
+    @return #{class($aliasList, $alias: true)}; // thrown back into the class list as the new query
+  }
+  @if string.slice($class, 1, 1) == '#' {
+    @return $class;
+  } @else {
+    @return '.' + $class;
+  }
+}
+
+///extreme lazy shorthand with capital just in case
+@function c($query, $alias: false) {
+  @return class($query, $alias);
+}
+@function C($query, $alias: false) {
+  @return class($query, $alias);
+}
+
+/// dump literally every class for debug
+// todo for this: make sure to escape \ as \\ on export
+// todo for this: ensure aliases actually work; just don't dump them into the list
+@function debug_dump_all_classes_yes_i_am_sure() {
+  $fullClassList: '';
+  $l: $classes;
+  @each $item in $l {
+    // nth($item,1); // category name
+    // type-of(nth($item,2)); // whole map
+    @each $subitem in list.nth($item, 2) {
+      // $subitem should always be a list, don't question it.
+      $fullClassList: $fullClassList + debug_dump_all_classes_in_list('', list.nth($subitem, 2));
+    }
+  }
+  // @debug $fullClassList;
+  @return $fullClassList;
+}
+@function debug_dump_all_classes_in_list($strOfClasses, $listToDump) {
+  $classesFromList: '';
+  @each $class in $listToDump {
+    // @debug type-of($class) "|" $class;
+    @if meta.type-of($class) == string {
+      $checkString: debug_checkString($class);
+      @if $checkString != '' {
+        $classesFromList: $classesFromList + $checkString + '\A';
+      }
+    } @else if meta.type-of($class) == list {
+      // @debug "it's a list.";
+      // skip first item since that'll be for the list identifier
+      $classesFromList: $classesFromList + debug_dump_all_classes_in_list($classesFromList, list.nth($class, 2));
+    }
+  }
+  @return $classesFromList;
+}
+@function debug_checkString($class) {
+  @if string.slice($class, 1, 1) == '!' or string.slice($class, 1, 1) == '@' {
+    @if string.slice($class, 1, 1) == '@' {
+      @warn "[DEPRECATED] The specific selector used for \"#{$class}\" is deprecated and may be removed in the future.";
+    }
+    $class: string.slice($class, 2, -1); // remove `!` or `@`
+  }
+  @if string.slice($class, 1, 1) == '.' {
+    @return ''; // despite this actually intending to throw an error, it's better to skip them outright.
+  }
+  @if string.slice($class, 1, 6) == 'alias ' {
+    @return ''; // ignore all aliases
+  }
+  @if string.slice($class, 1, 1) == '#' {
+    @return $class;
+  } @else {
+    @return '.' + $class;
+  }
+}
+@function debug_dump_all_aliases_yes_i_am_sure() {
+  $fullClassList: '';
+  $l: $classes;
+  @each $item in $l {
+    // nth($item,1); // category name
+    // type-of(nth($item,2)); // whole map
+    @each $subitem in list.nth($item, 2) {
+      // $subitem should always be a list, don't question it.
+      $fullClassList: $fullClassList + debug_dump_all_aliases_in_list('', list.nth($subitem, 2));
+    }
+  }
+  // @debug $fullClassList;
+  @return $fullClassList;
+}
+@function debug_dump_all_aliases_in_list($strOfClasses, $listToDump) {
+  $classesFromList: '';
+  @each $class in $listToDump {
+    // @debug type-of($class) "|" $class;
+    @if meta.type-of($class) == string {
+      $checkString: debug_checkString_alias($class);
+      @if $checkString != '' {
+        $classesFromList: $classesFromList + $checkString + '\A';
+      }
+    } @else if meta.type-of($class) == list {
+      // @debug "it's a list.";
+      // skip first item since that'll be for the list identifier
+      $classesFromList: $classesFromList + debug_dump_all_aliases_in_list($classesFromList, list.nth($class, 2));
+    }
+  }
+  @return $classesFromList;
+}
+@function debug_checkString_alias($class, $alias: false) {
+  @if meta.type-of($class) == list {
+    $allClasses: $classes;
+    @each $item in $class {
+      $allClasses: map.get($allClasses, '#{$item}');
+      @if not $allClasses {
+        @if $alias {
+          @error "Unknown alias \"#{$item}\" in category: #{$class}. Please fix the classes list.";
+        } @else {
+          @error "Unknown class or ID \"#{$item}\" in category: #{$class}. Was the classes file not saved?";
+        }
+      }
+    }
+    $class: $allClasses;
+  }
+  @if meta.type-of($class) == string {
+    @if string.slice($class, 1, 1) == '!' {
+      $class: string.slice($class, 2, -1); // remove `!`
+    }
+    @if string.slice($class, 1, 1) == '.' {
+      @return ''; // despite this actually intending to throw an error, it's better to skip them outright.
+    }
+    @if string.slice($class, 1, 6) == 'alias ' {
+      // force error on already tested aliases to prevent loops
+      @if $alias == true {
+        @error "Issue caused by \"#{$class}\". Do not point aliases to other aliases as to prevent loops. Please fix this and try again.";
+      }
+      $aliasList: (); // create fake list to be thrown into function again
+      $aliasQuery: string.slice($class, 7, -1); // remove `alias ` from query
+      $spaceIndex: string.index($aliasQuery, $substring: ' '); // finds first space
+      @while $spaceIndex != null {
+        $item: string.slice($aliasQuery, 1, $spaceIndex - 1);
+        $aliasQuery: string.slice($aliasQuery, $spaceIndex + 1, -1);
+        $aliasList: list.append($aliasList, $item, space);
+        $spaceIndex: string.index($aliasQuery, $substring: ' '); // if not found this declared null
+      }
+      $aliasList: list.append($aliasList, $aliasQuery, space); // adds last item after @while
+      // @debug $aliasList;
+      @return #{debug_checkString_alias($aliasList, $alias: true)}; // thrown back into the class list as the new query
+    }
+  }
+  @if $alias == true {
+    @if string.slice($class, 1, 1) == '#' {
+      @return $class;
+    } @else {
+      @return '.' + $class;
+    }
+  } @else {
+    @return ''; // return empty for non-aliases.
+  }
+}
+
+////////////////
+// IT SHOULD BE WORTH NOTING:
+// EACH CATEGORY NAME IS ARBITRARY AND AS SUCH MULTIPLE CLASSES ARE SHARED BETWEEN AREAS.
+// WHEN CONVERTING YOUR OWN THEME TO THIS LIST, WHAT CATEGORY EACH CLASS FALLS UNDER MAY BE UNUSUAL, THIS INDICATES A SHARED CLASS BETWEEN AREAS.
+// CURRENT CATEGORY NAME IS MORE OR LESS WHAT AREA OF PYRITE WAS THEMED AT THE TIME.
+// IF AN ELEMENT HAS MULTIPLE CLASSES, TRY ALL OF THEM AS ONLY ONE WAS LIKELY USED WHEN THEMING.
+// EACH LINE OF DISCORD'S BASE CSS SEEMS TO BE RELATED TO ONE PART OF THE SITE, EACH LONE NUMBER IS A REFERENCE TO THAT LINE AND IS BASED ON THE CSS FILE LINKED NEARBY.
+// BROAD CLASSES SUCH AS THOSE THAT APPLY IN MULTIPLE UNRELATED AREAS (ie directionRow_*) ARE NOT CURRENTLY LISTED HERE AND IF THEY ARE THE LABEL IS WORSE THAN USELESS.
+// THIS LIST IS NOT AND NEVER WILL BE 100% COMPLETE AS CLASSES CHANGE CONSTANTLY, THINGS GET ADDED OR REMOVED AND DISCORD IS AN ABSOLUTE PAIN TO DEAL WITH.
+////////////////
+
+////////////////////
+/// CLASS MAP
+///
+/// Discord rotates its hashed class names. Nothing in this theme's stylesheets
+/// contains a hash - every selector goes through #{c(...)} and resolves here.
+/// When Discord rotates a hash, change exactly one line in this file.
+///
+/// Write class names WITHOUT the leading dot; c() adds it.
+/// A list value compiles to :is(a, b) - use it to survive a Discord rollout
+/// where old and new build are live at the same time.
+/// Prefix a value with ! to have the build print every place it is used,
+/// or with @ to mark it deprecated.
+///
+/// Entries without a marker mirror ClearVision v7's map (Apache-2.0) and can be
+/// resynced with `pnpm run classes:check`. UNION and LOCAL entries cannot -
+/// they are maintained here by hand.
+////////////////////
+
+$classes: (
+  'avatar': (
+    'mask': 'mask__44b0c',
+  ),
+  'badges': (
+    'number': 'numberBadge__463b7',
+    'text': 'textBadge__463b7',
+  ),
+  'button': (
+    'button': 'button__201d5',
+    'colorBrand': 'colorBrand__201d5',
+    'colorGreen': 'colorGreen__201d5',
+    'colorPrimary': 'colorPrimary__201d5',
+    'colorRed': 'colorRed__201d5',
+    'lookFilled': 'lookFilled__201d5',
+    'lookOutlined': 'lookOutlined__201d5',
+    'new': (
+      'active': 'active_a22cb0',
+      'button': 'button_a22cb0',
+      'primary': 'primary_a22cb0',
+      'secondary': 'secondary_a22cb0',
+    ),
+  ),
+  'call': (
+    'buttonSection': 'buttonSection__1405b',
+    'channelChatWrapper': 'channelChatWrapper_cb9592',
+    'colorable': 'colorable_f1ceac',
+    'container': 'callContainer_cb9592',
+    'disconnect': 'disconnect_f1ceac',
+    'minimum': 'minimum_cb9592',
+    'participantsButton': 'participantsButton__211d1',
+    'pulseGradient': 'pulseGradient__11664',
+    'quickSelectPopout': 'quickSelectPopout_ebaca5',
+    'root': 'root_bfe55a',
+    'tileBorder': 'border__2f4f7',
+    'tileSpeaking': 'speaking__2f4f7',
+    'wrapper': 'wrapper_cb9592',
+  ),
+  'channelSettings': (
+    'permissions': (
+      'card': 'settingCard__1a4ef',
+      'cardActive': 'active__1a4ef',
+    ),
+  ),
+  'chat': (
+    'botTag': 'botTagRegular__82f07',
+    'buttonsWrapper': 'wrapper_f7ecac',
+    'chat': 'chat_f75fb0',
+    'chatAvatar': 'avatar_c19a55',
+    'chatContentInner': 'chatContent_f75fb0',
+    'chatGradientBase': 'chatGradientBase__36d07',
+    'chatHeaderBar': 'chatHeaderBar_dc83f5',
+    'chatHeaderClickable': 'clickable_c19a55',
+    'chatScrollerNSFW': 'scroller_f35c3c',
+    'chatUsername': 'username_c19a55',
+    'cozy': 'cozy_c19a55',
+    'followWrapper': 'wrapper__44df5',
+    'hasThread': 'hasThread_c19a55',
+    'markup': 'markup__75297',
+    'mentioned': 'mentioned__5126c',
+    'mentionWrapper': 'wrapper_f61d60',
+    'message': ('message_d5deea' 'message__5126c'),  // UNION: second class is upstream ClearVision, kept for build drift
+    'noChannel': 'noChannel__01d5c',
+    'popover': 'popover_f84418',
+    'quoteContainer': 'blockquoteContainer__75297',
+    'quoteDivider': 'blockquoteDivider__75297',
+    'replying': 'replying__5126c',
+    'timestamp': 'timestamp_c19a55',
+    'bar': (
+      'jumpToPresent': 'jumpToPresentBar__0f481',
+      'newMessages': 'newMessagesBar__0f481',
+    ),
+    'divider': (
+      'content': 'content__908e2',
+      'divider': 'divider__908e2',
+      'isUnread': 'isUnread__908e2',
+    ),
+    'reactions': (
+      'count': 'reactionCount__23977',
+      'me': 'reactionMe__23977',
+      'reaction': 'reaction__23977',
+      'reactionBtn': 'reactionBtn__23977',
+      'reactions': 'reactions__23977',
+    ),
+    'replied': (
+      'spine': 'repliedMessageClickableSpine_c19a55',
+      'textContent': 'repliedTextContent_c19a55',
+      'app': (
+        'spine': 'messageSpine_c19a55',
+      ),
+    ),
+  ),
+  'chatForm': (
+    'attachmentArea': 'channelAttachmentArea_b77158',
+    'buttonWrapper': ('buttonWrapper_f7ecac' 'buttonWrapper__24af7'),  // UNION: second class is upstream ClearVision, kept for build drift
+    'channelTextArea': 'channelTextArea__74017',
+    'form': 'form_f75fb0',
+    'formWithLoadedChatInput': 'formWithLoadedChatInput_f75fb0',
+    'scrollableContainer': 'scrollableContainer__74017',
+    'sendButton': 'button_aa63ab',
+    'stackedBars': 'stackedBars__74017',
+    'themedBackground': 'themedBackground__74017',
+    'toolbar': 'toolbar_bba883',
+    'upload': 'upload_aa605f',
+  ),
+  'checkbox': (
+    'indicator': 'checkboxIndicator__714a9',
+    'option': 'checkboxOption__714a9',
+  ),
+  'embeds': (
+    'embedBotContainer': 'container__60fa3',
+    'embedFull': 'embedFull__623de',
+    'threadContainer': 'container__9271d',
+    'attachment': (
+      'file': 'file__0ccae',
+      'upload': (
+        'trackFill': 'fill__55b14',
+      ),
+    ),
+    'hoverButton': (
+      'group': 'hoverButtonGroup__06ab4',
+    ),
+    'invite': (
+      'guildInviteContainer': 'guildInviteContainer__083ae',
+      'wrapper': 'wrapper_d5f3cd',
+    ),
+    'media': (
+      'audioWrapper': 'wrapperAudio_cf09d8',
+      'videoWrapper': 'wrapper_cf09d8',
+    ),
+    'poll': (
+      'checkbox': 'checkbox_f4f0eb',
+    ),
+    'textContainer': (
+      'footer': 'footer__4d95d',
+      'textContainer': 'textContainer__4d95d',
+    ),
+    'voiceMessage': (
+      'container': 'container_a8e786',
+    ),
+  ),
+  'forums': (
+    'reaction': (
+      'count': 'reactionCount_f8896c',
+      'me': 'reactionMe_f8896c',
+      'reaction': 'reaction_f8896c',
+      'reactionBtn': 'reactionBtn_f8896c',
+      'reactions': 'reactions_f8896c',
+    ),
+  ),
+  'friends': (
+    'addFriendInputWrapper': 'addFriendInputWrapper__72ba7',
+  ),
+  'guildList': (
+    'bottomButton': 'circleIconButton__5bc7e',
+    'bottomButtonDisabled': 'disabled__5bc7e',
+    'bottomButtonSelected': 'selected__5bc7e',
+    'guildIcon': 'icon__6e9f8',
+    'homeWrapper': 'childWrapper__6e9f8',
+    'iconWrapper': 'wrapper__6e9f8',
+    'listItem': 'listItem__650eb',
+    'pillItem': 'item__58105',
+    'selected': 'selected__6e9f8',
+    'wrapper': 'wrapper_ef3116',
+    'mention': (
+      'mention': 'mention__3b95d',
+    ),
+  ),
+  'guildSettings': (
+    'automod': (
+      'keywordsTextArea': 'keywordsTextArea__6a631',
+      'regexTextArea': 'textArea_c615b7',
+    ),
+  ),
+  'header': (
+    'iconWrapper': ('iconWrapper_ef6e3a' 'iconWrapper__9293f'),  // UNION: second class is upstream ClearVision, kept for build drift
+    'searchAnswer': 'searchAnswer_bd8186',
+    'searchBar': 'searchBar__97492',
+    'searchFilter': 'searchFilter_bd8186',
+  ),
+  'input': (
+    'wrapper': 'wrapper__72c38',
+  ),
+  'loading': (
+    'container': 'container_a2f514',
+  ),
+  'main': (
+    'anchorLink': 'anchor_edefb8',
+    'appContainer': 'app_a3002d',
+    'appInner': 'app__160d8',
+    'appLayer': 'layer__960e4',
+    'appMount': 'appMount__51fd7',
+    'bg': 'bg__960e4',
+  ),
+  'media': (
+    'barProgress': 'mediaBarProgress_b26b79',
+  ),
+  'memberList': (
+    'childContainer': 'childContainer__91a9d',
+    'container': 'container_c8ffbb',
+    'contentName': 'content__91a9d',
+    'group': 'membersGroup_c8ffbb',
+    'layout': 'layout__91a9d',
+    'member': 'member__5d473',
+    'memberInner': 'memberInner__5d473',
+    'members': 'members_c8ffbb',
+    'name': 'name__91a9d',
+    'nameContainer': 'nameContainer__703b9',
+    'selected': 'selected__91a9d',
+    'wrap': 'membersWrap_c8ffbb',
+  ),
+  'modals': (
+    'body': 'content__49fc1',
+    'footer': 'footer__49fc1',
+    'header': 'header__49fc1',
+    'root': ('root__49fc1' 'container__8a031'),
+    'rootContainer': 'container__8a031',  // LOCAL: no upstream entry, maintain by hand
+    'keyboard': (
+      'modal': 'keyboardShortcutsModal_f061f6',
+    ),
+    'quickswitcher': (
+      'search': 'input_ac6cb0',
+    ),
+    'screenshare': (
+      'pillItemSelected': 'pillItemSelected__9e06a',
+    ),
+    'streamPicker': (
+      'ellipsis': 'ellipsis_e529a0',  // LOCAL: no upstream entry, maintain by hand
+      'footer': 'footer_a55fdc',  // LOCAL: no upstream entry, maintain by hand
+      'footerContent': 'footerContent_a55fdc',  // LOCAL: no upstream entry, maintain by hand
+      'header': 'header_a55fdc',  // LOCAL: no upstream entry, maintain by hand
+      'rightButtonGroup': 'rightButtonGroup_a55fdc',  // LOCAL: no upstream entry, maintain by hand
+      'root': 'root_a55fdc',  // LOCAL: no upstream entry, maintain by hand
+      'sourceName': 'sourceOrPresetName_e529a0',  // LOCAL: no upstream entry, maintain by hand
+      'summary': 'summary_e529a0',  // LOCAL: no upstream entry, maintain by hand
+      'summaryDetail': 'summaryDetail_e529a0',  // LOCAL: no upstream entry, maintain by hand
+      'summaryRoot': 'root_e529a0',  // LOCAL: no upstream entry, maintain by hand
+    ),
+    'timeout': (
+      'selectorButtonSelected': 'selectorButtonSelected__0907c',
+    ),
+  ),
+  'notice': (
+    'base': 'notice__6e2b9',
+    'colorBrand': 'colorBrand__6e2b9',
+    'colorDanger': 'colorDanger__6e2b9',
+    'colorStreamerMode': 'colorStreamerMode__6e2b9',
+  ),
+  'pages': (
+    'tags': (
+      'pill': 'pill_a2c9e8',
+      'selected': 'selected_a2c9e8',
+    ),
+  ),
+  'pagination': (
+    'activeButton': 'activeButton_c15210',
+  ),
+  'popouts': (
+    'apps': (
+      'popout': 'contentWrapper__9c62c',
+    ),
+    'autocomplete': (
+      'base': 'base__13533',
+      'clickable': 'clickable__13533',
+      'popout': 'autocomplete__13533',
+    ),
+    'dropdown': (
+      'dropdown': 'selectDropdown__0edde',
+      'option': 'option_a16aea',
+      'popout': 'popout_a16aea',
+      'positionTop': 'popoutPositionTop_a16aea',
+    ),
+    'emojiStickerPopout': (
+      'container': 'popoutContainer__0f481',
+    ),
+    'expressionPicker': (
+      'contentWrapper': 'contentWrapper__08434',
+      'navButtonActive': 'navButtonActive__08434',
+      'emoji': (
+        'categoryHeaderWrapper': 'wrapper__14245',
+        'defaultCategorySelected': 'categoryItemDefaultCategorySelected_b9ee0c',
+        'header': 'header_c0e32c',
+        'item': 'emojiItem_fc7141',
+        'itemSelected': 'emojiItemSelected_fc7141',
+        'picker': 'emojiPicker_c0e32c',
+      ),
+      'sticker': (
+        'categoryGenericSelected': 'stickerCategoryGenericSelected__3ad28',
+        'firstPartyCategorySelected': 'firstPartyCategorySelected__3ad28',
+      ),
+    ),
+    'inbox': (
+      'popout': 'container__8cb2e',
+    ),
+    'menus': (
+      'colorDanger': 'colorDanger_c1e9c4',
+      'colorDefault': 'colorDefault_c1e9c4',
+      'item': 'item_c1e9c4',
+      'itemFocused': 'focused_c1e9c4',
+      'label': 'label_c1e9c4',
+      'menu': 'menu_c1e9c4',
+      'separator': 'separator_c1e9c4',
+    ),
+    'pins': (
+      'popout': 'messagesPopoutWrap__432f4',
+    ),
+    'rolePopout': (
+      'popout': 'rolePopout__75297',
+    ),
+    'search': (
+      'container': 'container__16eb0',
+    ),
+    'soundboard': (
+      'picker': 'picker__09f65',
+      'refresh': 'refresh__09f65',
+      'section': (
+        'container': 'sectionContainer__61424',
+      ),
+    ),
+    'stickerSuggestion': (
+      'background': 'containerBackground_d4ced7',
+    ),
+    'threads': (
+      'modalBrowser': 'browser__9a792',
+      'popoutBrowser': 'browser_d98031',
+    ),
+  ),
+  'profile': (
+    'inner': 'inner_c0bea0',
+    'outer': 'outer_c0bea0',
+    'overlay': 'overlay_c0bea0',
+    'status': (
+      'caretFill': 'caretFill__4e35b',
+      'caretIcon': 'caretIcon__4e35b',
+      'tooltip': 'tooltip__4e35b',
+    ),
+  ),
+  'scroller': (
+    'auto': ('auto__99f8c' 'auto_d125d2'),
+    'thin': ('thin__99f8c' 'thin_d125d2'),
+  ),
+  'search': (
+    'header': 'searchHeader_ae7890',
+    'result': 'searchResult__80bf8',
+    'wrap': 'searchResultsWrap_a98f3b',
+  ),
+  'searchbar': (
+    'channelSearch': 'search_ea4e51',  // LOCAL: no upstream entry, maintain by hand
+    'container': 'container_a45028',
+    'settings': (
+      'container': 'container_fea832',
+    ),
+  ),
+  'settings': (
+    'colorPickerPopout': 'customColorPicker__459fb',
+    'contentColumnDefault': 'contentColumnDefault__23e6b',
+    'contentRegion': 'contentRegion__23e6b',
+    'contentRegionScroller': 'contentRegionScroller__23e6b',
+    'sidebarRegionScroller': 'sidebarRegionScroller__23e6b',
+    'standardSidebarView': 'standardSidebarView__23e6b',
+    'card': (
+      'card': ('card__73069' 'card_b5dd01'),  // UNION: second class is upstream ClearVision, kept for build drift
+      'editable': ('editable__73069' 'editable_b5dd01'),  // UNION: second class is upstream ClearVision, kept for build drift
+      'primary': ('cardPrimary__73069' 'cardPrimary_b5dd01'),  // UNION: second class is upstream ClearVision, kept for build drift
+    ),
+  ),
+  'sidebar': (
+    'list': 'sidebarList__5e434',
+    'sidebar': 'sidebar__5e434',
+    'panel': (
+      'panels': 'panels__5e434',
+      'activity': (
+        'panel': 'panel__5dec7',
+      ),
+      'buttons': (
+        'lottieIcon': 'lottieIcon__5eb9b',
+      ),
+      'voice': (
+        'actionButtons': (
+          'active': 'buttonActive_e131a9',
+          'button': 'button_e131a9',
+          'color': 'buttonColor_e131a9',
+        ),
+        'noiseCancellation': (
+          'popout': 'noiseCancellationPopout_e131a9',
+        ),
+      ),
+    ),
+    'private': (
+      'activityText': 'activityStatusText__972a0',
+      'channels': 'privateChannels_e6b769',
+      'headerContainer': 'privateChannelsHeaderContainer__99e7c',
+      'headerText': 'headerText__99e7c',
+      'interactive': 'interactive__972a0',
+      'scroller': 'scroller__99e7c',
+      'selected': 'interactiveSelected__972a0',
+    ),
+    'server': (
+      'container': 'container__2637a',
+      'category': (
+        'addButtonIcon': 'addButtonIcon__29444',
+        'collapsed': 'collapsed__29444',
+        'collapseIcon': 'icon__29444',
+        'muted': 'muted__29444',
+        'name': 'name__29444',
+        'wrapper': 'wrapper__29444',
+      ),
+      'channels': (
+        'connected': 'modeConnected__2ea32',
+        'icon': 'icon__2ea32',
+        'link': 'link__2ea32',
+        'muted': 'modeMuted__2ea32',
+        'name': 'name__2ea32',
+        'newChannelBadge': 'newChannel__599fa',
+        'selected': 'modeSelected__2ea32',
+        'unread': 'modeUnreadImportant__2ea32',
+        'unreadPill': 'unread__2ea32',
+        'wrapper': 'wrapper__2ea32',
+        'voice': (
+          'avatar': 'avatar__07f91',
+          'listGeneric': 'list_c3cd7d',
+        ),
+      ),
+      'header': (
+        'bannerContainer': 'animatedContainer_f37cb1',
+      ),
+    ),
+  ),
+  'slider': (
+    'barFill': 'barFill_a562c8',
+    'grabber': 'grabber_a562c8',
+    'slider': 'slider_a562c8',
+  ),
+  'switch': (
+    'indicator': 'switchIndicator_a28278',
+    'slider': 'slider_a28278',  // LOCAL: no upstream entry, maintain by hand
+  ),
+  'tab': (
+    'item': 'item_aa8da2',
+    'selected': 'selected_aa8da2',
+    'side': 'side_aa8da2',
+    'themed': 'themed_aa8da2',
+    'top': 'top_aa8da2',
+    'topPill': 'topPill_aa8da2',
+  ),
+  'thread': (
+    'header': 'chatHeaderBar_a5700d',
+  ),
+  'title': (
+    'bar': 'bar_c38106',
+    'title': (
+      'container': 'title_c38106',
+    ),
+  ),
+  'tooltips': (
+    'caretFill': 'caretFill_fa450d',
+    'caretIcon': 'caretIcon_fa450d',
+    'tooltip': 'tooltip_fa450d',
+  ),
+  'userSettings': (
+    'account': (
+      'profileCard': 'accountProfileCard_a27e58',
+    ),
+    'profiles': (
+      'lockIcon': 'iconBadge__03991',
+    ),
+    'sidebar': (
+      'fixedContent': 'fixedContent__409aa',
+      'item': 'item_caf372',
+      'itemActive': 'active_caf372',
+      'label': 'label__409aa',
+      'sectionLabel': 'sectionLabel__409aa',
+    ),
+  ),
+);

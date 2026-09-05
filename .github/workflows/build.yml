@@ -1,0 +1,44 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # The distributable that users paste into QuickCSS is generated from
+      # src/start/_index.scss. If it is stale in the repo, the @import URL and
+      # the version number users see are wrong.
+      - name: Check the committed distributable is up to date
+        run: git diff --exit-code -- Material3-Expressive-v1-Vencord.css
+
+      # Publishes ./public as the Pages root, so the stylesheet is served at
+      # https://<user>.github.io/<repo>/main.css - the URL src/start/_index.scss
+      # builds the @import from. Change one, change the other.
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public

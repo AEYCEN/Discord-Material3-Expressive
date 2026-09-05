@@ -1,0 +1,20 @@
+@use 'sass:string';
+
+/// Emit a modern-syntax hsl() verbatim.
+///
+/// Sass parses `hsl()` itself and re-serialises it in the legacy comma form:
+///   hsl(var(--t-hue) 22% 6% / .5)  ->  hsl(var(--t-hue), 22%, 6%, .5)
+/// The legacy form only accepts a bare <number> for the hue, so a user who sets
+/// `--t-hue: 200deg` would get an invalid colour. This keeps the space/slash
+/// syntax that CSS Color 4 defines.
+///
+/// @param {*} $h hue
+/// @param {*} $s saturation
+/// @param {*} $l lightness
+/// @param {*} $a alpha, omitted when null
+@function tone($h, $s, $l, $a: null) {
+  @if $a == null {
+    @return string.unquote('hsl(#{$h} #{$s} #{$l})');
+  }
+  @return string.unquote('hsl(#{$h} #{$s} #{$l} / #{$a})');
+}

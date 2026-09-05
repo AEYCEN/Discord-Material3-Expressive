@@ -1,0 +1,10 @@
+node_modules/
+
+# build output
+build/
+public/
+test/
+
+# editors
+.idea/
+.vscode/
