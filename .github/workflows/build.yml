@@ -34,11 +34,16 @@ jobs:
         run: git diff --exit-code -- Material3-Expressive-v1-Vencord.css
 
       # Publishes ./public as the Pages root, so the stylesheet is served at
-      # https://<user>.github.io/<repo>/main.css - the URL src/start/_index.scss
-      # builds the @import from. Change one, change the other.
+      # https://<cname>/main.css - the URL src/start/_index.scss builds the
+      # @import from. Change one, change the other.
+      #
+      # `cname` is not optional: this deploy force-pushes gh-pages, which would
+      # otherwise delete the CNAME file GitHub put there and silently detach the
+      # custom domain. The action rewrites the file on every run instead.
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
+          cname: discord-material3-expressive.aeycen.dev

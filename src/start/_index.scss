@@ -8,8 +8,11 @@ $author: 'AEYCEN';
 $desc: 'Material-You-inspired dark theme: primary-tinted surface tiers, three colour roles, mono for identifiers.';
 
 $repo: 'https://github.com/AEYCEN/Discord-Material3-Expressive';
-// GitHub Pages root. This is also the CSS @import host, so it must match
-// the `publish_dir` of .github/workflows/build.yml.
-$website: 'https://aeycen.github.io/Discord-Material3-Expressive';
+
+// Custom domain served by GitHub Pages, and the CSS @import host.
+// It must match the `cname` input in .github/workflows/build.yml: the deploy
+// force-pushes gh-pages, and without that input the CNAME file GitHub wrote
+// there is wiped, which detaches the custom domain again.
+$website: 'https://discord-material3-expressive.aeycen.dev';
 
 $mainImport: 'main.css'; // base import filename, published at $website/$mainImport

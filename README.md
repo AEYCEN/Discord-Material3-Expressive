@@ -12,7 +12,7 @@ theme retunes.
 2. Add:
 
    ```
-   https://aeycen.github.io/Discord-Material3-Expressive/main.css
+   https://discord-material3-expressive.aeycen.dev/main.css
    ```
 
 To customise, copy [`Material3-Expressive-v1-Vencord.css`](Material3-Expressive-v1-Vencord.css)
