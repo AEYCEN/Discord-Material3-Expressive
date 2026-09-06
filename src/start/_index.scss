@@ -9,10 +9,14 @@ $desc: 'Material-You-inspired dark theme: primary-tinted surface tiers, three co
 
 $repo: 'https://github.com/AEYCEN/Discord-Material3-Expressive';
 
-// Custom domain served by GitHub Pages, and the CSS @import host.
-// It must match the `cname` input in .github/workflows/build.yml: the deploy
-// force-pushes gh-pages, and without that input the CNAME file GitHub wrote
-// there is wiped, which detaches the custom domain again.
-$website: 'https://discord-material3-expressive.aeycen.dev';
+// GitHub Pages root, and the CSS @import host.
+//
+// Deliberately not a custom domain: Vencord only loads themes from hosts on its
+// CSP allowlist, and github.io is on it. A custom domain would make every user
+// confirm a security prompt before the theme loads.
+//
+// Must match `publish_dir` in .github/workflows/build.yml, which publishes
+// public/ as the Pages root. Pages paths are case-sensitive.
+$website: 'https://aeycen.github.io/Discord-Material3-Expressive';
 
 $mainImport: 'main.css'; // base import filename, published at $website/$mainImport

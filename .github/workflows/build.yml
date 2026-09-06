@@ -34,16 +34,16 @@ jobs:
         run: git diff --exit-code -- Material3-Expressive-v1-Vencord.css
 
       # Publishes ./public as the Pages root, so the stylesheet is served at
-      # https://<cname>/main.css - the URL src/start/_index.scss builds the
-      # @import from. Change one, change the other.
+      # https://<user>.github.io/<repo>/main.css - the URL src/start/_index.scss
+      # builds the @import from. Change one, change the other.
       #
-      # `cname` is not optional: this deploy force-pushes gh-pages, which would
-      # otherwise delete the CNAME file GitHub put there and silently detach the
-      # custom domain. The action rewrites the file on every run instead.
+      # Deliberately no `cname:` input. A custom domain would have to be allowed
+      # by hand by every user, because Vencord only loads themes from hosts on
+      # its CSP allowlist - github.io is on it. Adding `cname:` here would also
+      # re-attach the domain on the next push, since this deploy force-pushes.
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
-          cname: discord-material3-expressive.aeycen.dev

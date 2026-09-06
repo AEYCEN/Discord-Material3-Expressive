@@ -4,10 +4,10 @@
  * @version 1.0.0
  * @description Material-You-inspired dark theme: primary-tinted surface tiers, three colour roles, mono for identifiers.
  * @source https://github.com/AEYCEN/Discord-Material3-Expressive
- * @website https://discord-material3-expressive.aeycen.dev
+ * @website https://aeycen.github.io/Discord-Material3-Expressive
  */
 /* IMPORT CSS */
-@import url("https://discord-material3-expressive.aeycen.dev/main.css");
+@import url("https://aeycen.github.io/Discord-Material3-Expressive/main.css");
 /* SETTINGS
    Everything below can be changed. Delete a line to fall back to the default. */
 :root {

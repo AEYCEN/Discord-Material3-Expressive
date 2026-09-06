@@ -3,7 +3,7 @@
 A Material-You-inspired dark theme for Discord: primary-tinted surface tiers,
 three colour roles, mono for identifiers. Built for [Vencord](https://vencord.dev).
 
-One seed hue drives every surface and accent — change `--t-hue` and the whole
+One seed hue drives every surface and accent - change `--t-hue` and the whole
 theme retunes.
 
 ## Install (Vencord)
@@ -12,7 +12,7 @@ theme retunes.
 2. Add:
 
    ```
-   https://discord-material3-expressive.aeycen.dev/main.css
+   https://aeycen.github.io/Discord-Material3-Expressive/main.css
    ```
 
 To customise, copy [`Material3-Expressive-v1-Vencord.css`](Material3-Expressive-v1-Vencord.css)
@@ -36,23 +36,23 @@ On Windows, PowerShell may refuse these with *"npm.ps1 ist nicht digital
 signiert"* / *"cannot be loaded because it is not digitally signed"*. That is the
 execution policy blocking npm's PowerShell shim, and if it comes from Group
 Policy (`Get-ExecutionPolicy -List` shows `AllSigned` under `MachinePolicy`) you
-cannot override it locally. Use the batch shims instead — `npm.cmd run build` —
+cannot override it locally. Use the batch shims instead - `npm.cmd run build` -
 or run the commands from Git Bash.
 
 ### Layout
 
-| Path | What it is |
-| --- | --- |
-| `src/main.scss` | The theme. Contains no class hashes. |
-| `src/backend/_classes.scss` | Every hashed Discord class, once. |
-| `src/backend/_mixins.scss` | `tone()` — modern-syntax `hsl()` Sass won't rewrite. |
-| `src/start/_index.scss` | Version, URLs, metadata. Single source of truth. |
-| `dist/*.scss` | Sources for the user-facing distributables. |
-| `public/` | Build output, published to GitHub Pages. |
+| Path                        | What it is                                           |
+|-----------------------------|------------------------------------------------------|
+| `src/main.scss`             | The theme. Contains no class hashes.                 |
+| `src/backend/_classes.scss` | Every hashed Discord class, once.                    |
+| `src/backend/_mixins.scss`  | `tone()` - modern-syntax `hsl()` Sass won't rewrite. |
+| `src/start/_index.scss`     | Version, URLs, metadata. Single source of truth.     |
+| `dist/*.scss`               | Sources for the user-facing distributables.          |
+| `public/`                   | Build output, published to GitHub Pages.             |
 
 ### When Discord rotates a class name
 
-Nothing in `src/main.scss` contains a hash — every selector goes through
+Nothing in `src/main.scss` contains a hash - every selector goes through
 `#{c(...)}` and resolves in `src/backend/_classes.scss`. A rotation is a
 one-line change there.
 

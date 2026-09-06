@@ -7,14 +7,15 @@
   "description": "Material 3 Expressive theme for Discord (Vencord)",
   "homepage": "https://github.com/AEYCEN/Discord-Material3-Expressive",
   "scripts": {
-    "build": "npm run build:css && npm run build:min && npm run build:dist",
+    "build": "npm run build:css && npm run build:min && npm run build:landing && npm run build:dist",
     "build:css": "sass src/main.scss build/main.css --style=expanded --no-source-map --no-charset",
     "build:min": "lightningcss --minify --targets \"chrome >= 120\" build/main.css -o public/main.css",
     "build:dist": "sass dist:. --style=expanded --no-source-map --no-charset",
     "test": "sass src/main.scss test/main.css --style=expanded --no-source-map --no-charset",
     "watch": "sass src/main.scss build/main.css --style=expanded --no-source-map --no-charset --watch",
     "classes:check": "node tools/classes-check.mjs",
-    "classes:sync": "node tools/classes-check.mjs --apply"
+    "classes:sync": "node tools/classes-check.mjs --apply",
+    "build:landing": "node tools/build-landing.mjs"
   },
   "devDependencies": {
     "lightningcss-cli": "^1.30.0",
