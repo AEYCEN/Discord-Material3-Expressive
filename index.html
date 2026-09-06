@@ -133,6 +133,7 @@ body {
 }
 
 .page {
+  position: relative; /* anchors the GitHub icon button to the top right */
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
@@ -208,9 +209,13 @@ h1 {
   background: var(--t-surface-0);
 }
 
+/* Sized by its content, not by the viewport. A vh-based height clipped the top
+   of the conversation on a short window, and the first message is the one that
+   sets the joke up - a scrollback that hides its own premise is worse than a
+   preview that is simply as tall as it needs to be. */
 .app {
   display: flex;
-  height: clamp(400px, 58vh, 540px);
+  min-height: 400px;
   overflow: hidden;
   border-radius: var(--t-radius-container);
   font-size: 14px;
@@ -343,10 +348,10 @@ h1 {
 }
 .chat .head .i { color: var(--t-text-low); }
 
-/* monogram sits under the messages, as it does in the theme */
+/* The theme's chat monogram is not drawn here. It is set in Anurati, which the
+   visitor almost certainly does not have installed, so it rendered in a fallback
+   face that looked nothing like the real thing. */
 .log {
-  position: relative;
-  isolation: isolate;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -355,32 +360,7 @@ h1 {
   justify-content: flex-end;
   gap: 14px;
   padding: 20px 16px 8px;
-  container-type: inline-size;
-  container-name: t-chat;
 }
-.log::before {
-  content: var(--t-monogram);
-  position: absolute;
-  inset: 0;
-  padding: 0 24px 20px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  font-family: var(--t-monogram-font);
-  font-size: 64px;
-  letter-spacing: var(--t-monogram-spacing);
-  text-transform: uppercase;
-  line-height: 1;
-  color: hsl(var(--t-hue) 100% 86% / var(--t-monogram-opacity));
-  white-space: nowrap;
-  z-index: -1;
-}
-/* same 420px floor the theme uses: below it the monogram is wider than the
-   chat pane and reads as a smudge behind the messages rather than a mark */
-@container t-chat (max-width: 419px) {
-  .log::before { display: none; }
-}
-
 .msg { display: flex; gap: 12px; }
 .av {
   flex: 0 0 auto;
@@ -388,13 +368,21 @@ h1 {
   height: 36px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border-radius: var(--t-radius-pill);
-  /* avatars are offsets from the seed hue, so they retune with everything else */
+  /* the plate is only for initials, and is an offset from the seed hue so those
+     retune with everything else. :has() drops it behind a picture - all of them
+     are transparent artwork, which a coloured disc sitting behind would turn
+     into a badge none of them are. */
   background: hsl(calc(var(--t-hue) + var(--av, 0)) 32% 40%);
   color: var(--t-text-high);
   font-size: 13px;
   font-variation-settings: "wght" 700;
 }
+.av:has(img) { background: none; }
+/* contain, not cover: these are marks with their own margins, and one of them
+   is wider than it is tall - cropping to a square would cut its edges off */
+.av img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .msg .body { min-width: 0; }
 .msg .line { display: flex; align-items: baseline; gap: 8px; }
 .msg .who { font-variation-settings: "wght" 650; color: var(--t-text-high); }
@@ -576,7 +564,27 @@ h1 {
   border-radius: var(--t-radius-pill);
 }
 
-.caption { margin: 12px 0 0; max-width: 62ch; font-size: 14px; color: var(--t-text-low); }
+/* Indented to the slider's own padding so it lines up with the label above it,
+   and kept on one line - the sentence is the slider's caption, not a paragraph.
+   It shrinks with the viewport instead of wrapping, and only below the width
+   where that would get too small does it become two lines. */
+/* .page .caption, not .caption: the generic ".page p" rule above is a class
+   plus a type selector, so it outranks a lone class and was quietly resetting
+   this margin-top to 0. What looked like a gap was only the slider's own
+   bottom padding. */
+.page .caption {
+  margin: 28px 0 0;
+  padding-inline: clamp(16px, 2.4vw, 24px);
+  font-size: 14px;
+  color: var(--t-text-low);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 900px) {
+  /* must match the base rule's specificity or it cannot override the nowrap */
+  .page .caption { white-space: normal; max-width: 62ch; }
+}
 
 /* ---------- install ---------- */
 .url { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -638,6 +646,12 @@ h1 {
 button, .btn {
   --btn-pad-y: 12px;
   flex: 0 0 auto;
+  /* inline-flex so a confirmation icon can sit beside the label. The icon is
+     18px and the line box is 18.75px, so the icon never sets the height and
+     0.5lh stays half of it. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--btn-pad-y) 20px;
   border: none;
   border-radius: calc(0.5lh + var(--btn-pad-y));
@@ -653,7 +667,20 @@ button, .btn {
   cursor: pointer;
   transition: border-radius var(--t-dur-base) var(--t-spring-bouncy),
               transform var(--t-dur-base) var(--t-spring-bouncy),
+              width var(--t-dur-base) var(--t-spring-bouncy),
               background-color var(--t-dur-fast) ease;
+}
+
+/* Confirming a copy changes both the label and the button's width, and swapping
+   the two at once is the jump. So they are separated: the label fades out, the
+   text is exchanged while it is invisible, and the width springs to its new
+   value as the new label fades back in. The width has to be measured and
+   written in pixels for that - auto does not animate. */
+.lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 130ms ease;
 }
 button:hover, .btn:hover {
   border-radius: var(--t-radius-input);
@@ -666,6 +693,27 @@ a:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 3px; }
 
 .btn.secondary, button.secondary { background: var(--t-surface-4); color: var(--t-text-high); }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* the tick that replaces nothing - it joins the label, so the button still says
+   what happened rather than only showing a mark */
+.ok { width: 18px; height: 18px; flex: 0 0 auto; }
+
+/* Icon button, top right. Square and circular at rest, and it takes the same
+   hover morph as every other button here: the shared :hover rule pulls the
+   radius to --t-radius-input, which on a 48px square is a clear squircle. */
+.gh-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 24px;
+  background: var(--t-surface-4);
+  color: var(--t-text-high);
+}
+.gh { width: 22px; height: 22px; }
 
 /* ---------- author + footer ---------- */
 .author { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -710,13 +758,11 @@ footer a { color: var(--t-text-mid); }
   /* the account panel repeats what the member list already showed */
   .side .panel { display: none; }
   .chat {
-    height: 340px;
     border-radius: 0 0 var(--t-radius-container) var(--t-radius-container);
   }
 }
 @media (max-width: 420px) {
   .app { font-size: 13px; }
-  .chat { height: 300px; }
 }
 @media (max-width: 720px) {
   .hue {
@@ -738,6 +784,8 @@ footer a { color: var(--t-text-mid); }
 <body>
 <div class="page">
 
+  <a class="btn gh-btn" href="https://github.com/AEYCEN/Discord-Material3-Expressive" aria-label="This theme on GitHub"><svg class="gh" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M280.5 426.5C214.5 418.5 168 371 168 309.5C168 284.5 177 257.5 192 239.5C185.5 223 186.5 188 194 173.5C214 171 241 181.5 257 196C276 190 296 187 320.5 187C345 187 365 190 383 195.5C398.5 181.5 426 171 446 173.5C453 187 454 222 447.5 239C463.5 258 472 283.5 472 309.5C472 371 425.5 417.5 358.5 426C375.5 437 387 461 387 488.5L387 540.5C387 555.5 399.5 564 414.5 558C505 523.5 576 433 576 321C576 179.5 461 64 319.5 64C178 64 64 179.5 64 321C64 432 134.5 524 229.5 558.5C243 563.5 256 554.5 256 541L256 501C249 504 240 506 232 506C199 506 179.5 488 165.5 454.5C160 441 154 433 142.5 431.5C136.5 431 134.5 428.5 134.5 425.5C134.5 419.5 144.5 415 154.5 415C169 415 181.5 424 194.5 442.5C204.5 457 215 463.5 227.5 463.5C240 463.5 248 459 259.5 447.5C268 439 274.5 431.5 280.5 426.5z"/></svg></a>
+
   <div class="hero">
     <h1>Material 3 Expressive</h1>
     <div class="meta">
@@ -751,7 +799,7 @@ footer a { color: var(--t-text-mid); }
     <div class="window">
       <div class="app" role="img" aria-label="A Discord window in the Material 3 Expressive theme: surfaces tinted in the seed hue, the selected channel as a pill in the primary container colour, categories in secondary, and mentions and unread markers in tertiary.">
         <div class="guilds" aria-hidden="true">
-          <span class="g on">M3</span>
+          <span class="g on">LY</span>
           <span class="sep"></span>
           <span class="g">DV<span class="badge">3</span></span>
           <span class="g">VC</span>
@@ -759,73 +807,77 @@ footer a { color: var(--t-text-mid); }
         </div>
 
         <div class="side" aria-hidden="true">
-          <div class="head">Material You</div>
+          <div class="head">LYGHTNING</div>
           <ul>
             <li class="cat">Text</li>
-            <li class="ch muted"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>welcome</span></li>
-            <li class="ch on"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>design-system</span></li>
-            <li class="ch unread"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>releases</span></li>
-            <li class="ch "><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>help</span></li>
+            <li class="ch muted"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>hello-there</span></li>
+            <li class="ch on"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>english-chat</span></li>
+            <li class="ch unread"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>german-chat</span></li>
+            <li class="ch "><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>tech-support</span></li>
             <li class="cat">Voice</li>
             <li class="ch"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 4.2 6.8 8.3H3.4a1 1 0 0 0-1 1v5.4a1 1 0 0 0 1 1h3.4l4.7 4.1a.8.8 0 0 0 1.3-.6V4.8a.8.8 0 0 0-1.3-.6Zm4.6 3.1a1 1 0 0 0-1 1.7 4 4 0 0 1 0 6 1 1 0 0 0 1 1.7 6 6 0 0 0 0-9.4Z"/></svg><span>Lounge</span></li>
           </ul>
           <div class="panel">
-            <span class="av" style="--av:0">AE</span>
-            <span class="who"><span class="n">aeycen</span><span class="s">Online</span></span>
+            <span class="av" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span>
+            <span class="who"><span class="n">ΛΕYCEN</span><span class="s">Online</span></span>
           </div>
         </div>
 
         <div class="chat" aria-hidden="true">
-          <div class="head"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>design-system</span></div>
+          <div class="head"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>english-chat</span></div>
           <div class="log">
+            
             <div class="msg">
-              <span class="av" style="--av:96">KJ</span>
+              <span class="av" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span>
               <div class="body">
-                <div class="line"><span class="who">kaj</span><time>10:58</time></div>
-                <p>Which part of this is doing the heavy lifting? It cannot all be selectors.</p>
+                <div class="line"><span class="who">ΛΕYCEN</span><time>21:02</time></div>
+                <p>vote: is <span class="at">@Loan</span> allowed to pick the music again</p>
               </div>
             </div>
+            
             <div class="msg">
-              <span class="av" style="--av:52">RB</span>
+              <span class="av" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span>
               <div class="body">
-                <div class="line"><span class="who">robin</span><time>11:01</time></div>
-                <p>Most of it is Discord&rsquo;s own variables, reassigned. Only geometry and motion need class names.</p>
+                <div class="line"><span class="who">TRAYVED</span><time>21:02</time></div>
+                <p>no</p><div class="reacts"><span class="me">&#128077; 7</span><span>&#128175; 4</span></div>
               </div>
             </div>
+            
             <div class="msg">
-              <span class="av" style="--av:52">RB</span>
+              <span class="av" style="--av:96">GI</span>
               <div class="body">
-                <div class="line"><span class="who">robin</span><time>11:04</time></div>
-                <p>Surfaces go six tiers deep, every one of them tinted with the seed hue. Nothing is flat grey.</p>
+                <div class="line"><span class="who">Gianiii</span><time>21:02</time></div>
+                <p>no</p>
               </div>
             </div>
+            
             <div class="msg">
-              <span class="av" style="--av:-46">TH</span>
+              <span class="av" style="--av:-46"><img src="loan.png" alt="" loading="lazy" decoding="async"></span>
               <div class="body">
-                <div class="line"><span class="who">theo</span><span class="tag">BOT</span><time>11:06</time></div>
-                <p>Built <code>main.css</code> in 1.4s and published it to Pages.</p>
-                <div class="reacts"><span class="me">&#128077; 4</span><span>&#127881; 2</span></div>
+                <div class="line"><span class="who">Loan</span><time>21:03</time></div>
+                <p>you have not even heard the playlist</p>
               </div>
             </div>
+            
             <div class="msg">
-              <span class="av" style="--av:0">AE</span>
+              <span class="av" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span>
               <div class="body">
-                <div class="line"><span class="who">aeycen</span><time>11:09</time></div>
-                <p><span class="at">@robin</span> mentions and unread markers are the only things using tertiary.</p>
+                <div class="line"><span class="who">TRAYVED</span><time>21:03</time></div>
+                <p>we heard it. that is the entire problem.</p>
               </div>
             </div>
           </div>
-          <div class="composer">Message #design-system</div>
+          <div class="composer">Message #english-chat</div>
         </div>
 
         <div class="members" aria-hidden="true">
           <ul>
             <li class="cat">Online &mdash; 3</li>
-            <li class="mem on"><span class="av" style="--av:0">AE</span><span>aeycen</span></li>
-            <li class="mem "><span class="av" style="--av:52">RB</span><span>robin</span></li>
-            <li class="mem "><span class="av" style="--av:-46">TH</span><span>theo</span></li>
+            <li class="mem on"><span class="av" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span><span>ΛΕYCEN</span></li>
+            <li class="mem "><span class="av" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span><span>TRAYVED</span></li>
+            <li class="mem "><span class="av" style="--av:-46"><img src="loan.png" alt="" loading="lazy" decoding="async"></span><span>Loan</span></li>
             <li class="cat">Offline &mdash; 1</li>
-            <li class="mem off"><span class="av" style="--av:96">KJ</span><span>kaj</span></li>
+            <li class="mem off"><span class="av" style="--av:96">GI</span><span>Gianiii</span></li>
           </ul>
         </div>
       </div>
@@ -837,12 +889,9 @@ footer a { color: var(--t-text-mid); }
         <input id="hue" type="range" min="0" max="360" step="1" value="173">
       </div>
       <span class="val" id="hueval" aria-hidden="true">173</span>
-      <button id="copyhue" type="button" class="secondary" data-label="Copy hue">Copy hue</button>
+      <button id="copyhue" type="button" class="secondary" data-label="Copy hue"><span class="lbl">Copy hue</span></button>
     </div>
-    <p class="caption">
-      Drag to retune the preview and this page together, the way the theme retunes Discord.
-      Copy the hue to paste it into your QuickCSS.
-    </p>
+    <p class="caption">Drag to retune the preview and this page together. Copy the hue for your QuickCSS.</p>
   </div>
 
   <section>
@@ -855,7 +904,7 @@ footer a { color: var(--t-text-mid); }
     </p>
     <div class="url">
       <code id="url">https://aeycen.github.io/Discord-Material3-Expressive/main.css</code>
-      <button id="copyurl" type="button" data-label="Copy URL" data-url="https://aeycen.github.io/Discord-Material3-Expressive/main.css">Copy URL</button>
+      <button id="copyurl" type="button" data-label="Copy URL" data-url="https://aeycen.github.io/Discord-Material3-Expressive/main.css"><span class="lbl">Copy URL</span></button>
     </div>
   </section>
 
@@ -888,9 +937,13 @@ footer a { color: var(--t-text-mid); }
       its default: the hue, surface opacity, a background image, the chat monogram, the radii,
       the motion springs. Delete a line to fall back to that default.
     </p>
+    <p class="prose">
+      Copy it, then paste it into <span class="path"><b>Settings</b> <i>&rsaquo;</i> <b>Themes</b>
+      <i>&rsaquo;</i> <b>Edit QuickCSS</b></span>. Nothing to download.
+    </p>
     <div class="actions">
-      <a class="btn secondary" href="https://raw.githubusercontent.com/AEYCEN/Discord-Material3-Expressive/main/Material-3-Expressive-v1-Vencord.css">Get the QuickCSS file</a>
-      <a class="btn secondary" href="https://github.com/AEYCEN/Discord-Material3-Expressive/blob/main/Material-3-Expressive-v1-Vencord.css">View on GitHub</a>
+      <button id="copyquick" type="button" data-label="Copy QuickCSS"><span class="lbl">Copy QuickCSS</span></button>
+      <a class="btn secondary" href="https://github.com/AEYCEN/Discord-Material3-Expressive/blob/main/Material3-Expressive-v1-Vencord.css">View on GitHub</a>
     </div>
   </section>
 
@@ -910,6 +963,117 @@ footer a { color: var(--t-text-mid); }
   </footer>
 
 </div>
+<!-- The distributable itself, so "Copy QuickCSS" needs no download and no
+     network call. type="text/plain" keeps the parser from running it as script
+     while leaving textContent byte-for-byte what build:dist produced. -->
+<script type="text/plain" id="quickcss-src">/**
+ * @name Material 3 Expressive
+ * @author AEYCEN
+ * @version 1.0.0
+ * @description Material-You-inspired dark theme: primary-tinted surface tiers, three colour roles, mono for identifiers.
+ * @source https://github.com/AEYCEN/Discord-Material3-Expressive
+ * @website https://aeycen.github.io/Discord-Material3-Expressive
+ */
+/* IMPORT CSS */
+@import url("https://aeycen.github.io/Discord-Material3-Expressive/main.css");
+/* SETTINGS
+   Everything below can be changed. Delete a line to fall back to the default. */
+:root {
+  /* COLOUR SEED
+     One hue drives every surface and the primary colour. Secondary keeps the same
+     hue with less chroma; tertiary sits 25° next to it (Material You). */
+  --t-hue: -187; /* seed hue in degrees, any value works [default: -187] */
+  --t-hue-secondary: var(--t-hue); /* hue for categories, voice, "connected" [default: var(--t-hue)] */
+  --t-hue-tertiary: calc(var(--t-hue) + 25); /* hue for mentions & unread [default: calc(var(--t-hue) + 25)] */
+  /* BACKGROUND IMAGE (optional)
+     Lower --t-surface-alpha to let the image show through:
+     0.72–0.85 looks like tinted glass, 1 = image only visible in the window frame. */
+  --t-background-image: none; /* url("https://…/image.jpg"); only raw.githubusercontent.com, *.github.io and i.imgur.com work reliably [default: none] */
+  --t-background-position: center; /* [default: center] */
+  --t-background-size: cover; /* [default: cover] */
+  --t-background-blur: 0px; /* e.g. 12px [default: 0px] */
+  --t-background-dim: 0.55; /* 0 = no dimming, 1 = fully darkened [default: 0.55] */
+  --t-surface-alpha: 1; /* opacity of surfaces 1–3, set below 1 when using an image [default: 1] */
+  /* MONOGRAM (optional)
+     Your name as a decorative element in the chat background. Set to "" to hide.
+     Uses Anurati if installed locally, otherwise Syncopate/Michroma (loaded from Google Fonts).
+     Hidden automatically when the chat is narrower than 420px. */
+  --t-monogram: "aeycen"; /* text in quotes [default: "aeycen"] */
+  --t-monogram-font: "Anurati", "Syncopate", "Michroma", sans-serif; /* [default: "Anurati", "Syncopate", "Michroma", sans-serif] */
+  --t-monogram-size: 96px; /* maximum size [default: 96px] */
+  --t-monogram-fluid: 11cqw; /* scales with chat width, --t-monogram-size stays the cap [default: 11cqw] */
+  --t-monogram-opacity: 0.07; /* 0.04 very subtle, 0.12 clearly visible [default: 0.07] */
+  --t-monogram-spacing: 0.25em; /* letter spacing [default: 0.25em] */
+  --t-monogram-x: flex-end; /* flex-start = left, center, flex-end = right [default: flex-end] */
+  --t-monogram-y: flex-end; /* flex-start = top, center, flex-end = bottom [default: flex-end] */
+  /* ROLE COLOUR READABILITY
+     Discord role colours are mapped to readable pastel tones while keeping their hue.
+     To disable set all three to 1. */
+  --t-role-contrast: 0.5; /* < 1 pulls dark and light colours towards the middle [default: 0.5] */
+  --t-role-lift: 1.7; /* brightness [default: 1.7] */
+  --t-role-saturate: 1.5; /* restores saturation lost by the contrast step [default: 1.5] */
+  /* STATUS COLOURS */
+  --t-success: hsl(150 45% 66%); /* online, connected [default: hsl(150 45% 66%)] */
+  --t-warning: hsl(42 85% 68%); /* idle [default: hsl(42 85% 68%)] */
+  --t-danger: hsl(2 90% 74%); /* dnd, destructive actions, hang up [default: hsl(2 90% 74%)] */
+  --t-streaming: hsl(268 70% 76%); /* streaming [default: hsl(268 70% 76%)] */
+  /* SHAPE
+     Expressive = radii follow hierarchy, not one value for everything. */
+  --t-radius-container: 20px; /* chat, sidebars, modals [default: 20px] */
+  --t-radius-card: 14px; /* cards, embeds, popouts [default: 14px] */
+  --t-radius-input: 12px; /* inputs, buttons [default: 12px] */
+  --t-radius-code: 8px; /* code blocks [default: 8px] */
+  --t-radius-pill: 999px; /* pills, selection, badges [default: 999px] */
+  /* FONTS (must be installed locally) */
+  --t-font-ui: "gg sans", "Inter", "Segoe UI", system-ui, sans-serif; /* [default: "gg sans", "Inter", "Segoe UI", system-ui, sans-serif] */
+  --t-font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, "gg mono", monospace; /* channel names, code [default: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, "gg mono", monospace] */
+  /* MOTION
+     Durations for the spring animations. Set all to 0ms to disable motion
+     (the theme also respects your OS "reduce motion" setting). */
+  --t-dur-fast: 220ms; /* hover, press, small elements [default: 220ms] */
+  --t-dur-base: 380ms; /* selection, popouts, most transitions [default: 380ms] */
+  --t-dur-slow: 560ms; /* large containers [default: 560ms] */
+}
+
+/* ADVANCED
+   The tokens below are derived from the seed hue and normally need no changes.
+   To override one, uncomment it inside the :root block above (or add your own :root).
+
+   Surface ladder (tier 0 = window frame … tier 5 = hover on popouts)
+   --t-surface-0: hsl(var(--t-hue) 22% 6%);
+   --t-surface-1: hsl(var(--t-hue) 20% 9% / var(--t-surface-alpha));
+   --t-surface-2: hsl(var(--t-hue) 18% 12% / var(--t-surface-alpha));
+   --t-surface-3: hsl(var(--t-hue) 16% 16% / var(--t-surface-alpha));
+   --t-surface-4: hsl(var(--t-hue) 15% 20%);
+   --t-surface-5: hsl(var(--t-hue) 14% 25%);
+
+   Text
+   --t-text-high: hsl(var(--t-hue) 30% 93%);
+   --t-text-mid: hsl(var(--t-hue) 18% 72%);
+   --t-text-low: hsl(var(--t-hue) 12% 50%);
+
+   Primary (selection, links, buttons, focus)
+   --t-primary: hsl(var(--t-hue) 100% 86%);
+   --t-on-primary: hsl(var(--t-hue) 55% 18%);
+   --t-primary-container: hsl(var(--t-hue) 42% 38%);
+   --t-on-primary-container: hsl(var(--t-hue) 100% 94%);
+
+   Secondary (categories, voice, speaking)
+   --t-secondary: hsl(var(--t-hue-secondary) 26% 74%);
+   --t-secondary-container: hsl(var(--t-hue-secondary) 22% 24%);
+   --t-on-secondary-container: hsl(var(--t-hue-secondary) 40% 90%);
+
+   Tertiary (mentions & unread)
+   --t-tertiary: hsl(var(--t-hue-tertiary) 60% 80%);
+   --t-on-tertiary: hsl(var(--t-hue-tertiary) 50% 14%);
+   --t-tertiary-container: hsl(var(--t-hue-tertiary) 34% 32%);
+   --t-on-tertiary-container: hsl(var(--t-hue-tertiary) 70% 93%);
+
+   Spring curves (linear() easing)
+   --t-spring-snappy
+   --t-spring-bouncy */
+/* ADD ADDITIONAL CSS BELOW HERE */
+</script>
 <script>
 (function () {
   var root = document.documentElement;
@@ -954,12 +1118,45 @@ footer a { color: var(--t-text-mid); }
     return ok;
   }
 
+  var CHECK = '<svg class="ok" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m382-354 339-339q12-12 28-12t28 12q12 12 12 28.5T777-636L410-268q-12 12-28 12t-28-12L182-440q-12-12-11.5-28.5T183-497q12-12 28.5-12t28.5 12l142 143Z"/></svg>';
+  var FADE = 130; // matches the .lbl opacity transition
+  var REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Swapping the label and the width together is what made the change snap.
+  // Here the label fades out first, the text is exchanged while it cannot be
+  // seen, and only then does the width spring to its new value with the new
+  // label fading back in. Both directions go through this, so returning to the
+  // resting label is as smooth as leaving it.
+  function swapLabel(b, html) {
+    var lbl = b.querySelector('.lbl');
+    if (REDUCED) { lbl.innerHTML = html; return; }
+    lbl.style.opacity = '0';
+    setTimeout(function () {
+      // offsetWidth, not getBoundingClientRect: the pointer is still over the
+      // button, so its rect carries the 1.06 hover scale. Measuring that and
+      // writing it back as a width made the button 6% wider on every swap, and
+      // it compounded. offsetWidth is the layout width and ignores transforms.
+      var from = b.offsetWidth;
+      lbl.innerHTML = html;
+      b.style.width = 'auto';
+      var to = b.offsetWidth;
+      b.style.width = from + 'px';
+      var flush = b.offsetWidth; // commit the start value so the next one animates
+      void flush;
+      b.style.width = to + 'px';
+      lbl.style.opacity = '1';
+    }, FADE);
+  }
+
   function onCopy(id, read, done, selectId) {
     var b = document.getElementById(id);
+    if (!b) return;
     b.addEventListener('click', function () {
       var text = read();
-      var reset = function () { setTimeout(function () { b.textContent = b.dataset.label; }, 2000); };
-      var ok = function () { b.textContent = done; reset(); };
+      var reset = function () { setTimeout(function () { swapLabel(b, b.dataset.label); }, 2000); };
+      // the tick joins the label rather than replacing it, so the button still
+      // says what happened
+      var ok = function () { swapLabel(b, CHECK + '<span>' + done + '</span>'); reset(); };
       // last resort: put the text under a selection so it can be copied by hand
       var select = function () {
         var r = document.createRange();
@@ -967,7 +1164,7 @@ footer a { color: var(--t-text-mid); }
         var s = getSelection();
         s.removeAllRanges();
         s.addRange(r);
-        b.textContent = 'Select and copy';
+        swapLabel(b, 'Select and copy');
         reset();
       };
       if (writeClipboard(text)) return ok();
@@ -977,6 +1174,8 @@ footer a { color: var(--t-text-mid); }
   }
   onCopy('copyhue', function () { return '--t-hue: ' + hue.value + ';'; }, 'Hue copied', 'hueval');
   onCopy('copyurl', function () { return document.getElementById('copyurl').dataset.url; }, 'URL copied', 'url');
+  // the whole distributable, embedded above - no download, no network at click
+  onCopy('copyquick', function () { return document.getElementById('quickcss-src').textContent; }, 'QuickCSS copied', 'url');
 })();
 </script>
 </body>
