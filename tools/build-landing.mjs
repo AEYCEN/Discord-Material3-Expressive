@@ -24,7 +24,7 @@ const FAVICON = 'm3-favicon.svg'; // the Material Design mark
 // Avatars for the people in the preview conversation. A name with no file here
 // falls back to its initials on a hue-derived plate, so adding a picture later
 // is one more entry - nothing else has to change.
-const AVATARS = ['trayved.png', 'loan.png'];
+const AVATARS = ['trayved.png', 'loan.png', '2_L_8.png'];
 const ASSETS = [LOGO, FAVICON, ...AVATARS]; // copied from assets/ into public/
 
 // The --t-hue default is written as a negative angle. Hue is mod 360, so the
@@ -117,6 +117,7 @@ const CAST = {
   trayved: { name: 'TRAYVED', img: 'trayved.png', tint: 52 },
   loan: { name: 'Loan', img: 'loan.png', tint: -46 },
   gianiii: { name: 'Gianiii', initials: 'GI', tint: 96 },
+  l8: { name: '2_L_8', img: '2_L_8.png', tint: 140 },
 };
 
 const avatar = (who, cls = 'av') =>
@@ -279,9 +280,23 @@ h1 {
 
 /* The rail and the sidebar share a column so the account panel can sit under
    both, the way it does in Discord - it is one panel spanning the whole left
-   side, not something tucked inside the channel list. */
-.left { flex: 0 0 auto; display: flex; flex-direction: column; background: var(--t-surface-2); }
-.left-top { display: flex; flex: 1; min-height: 0; }
+   side, not something tucked inside the channel list.
+
+   The 300px is written out (68 rail + 232 list) rather than left to an auto
+   flex basis. An intrinsic width here means the browser has to derive it from a
+   nested flex column, and Firefox resolved that to about the panel's own width:
+   the rail and the list then overflowed their column, .chat started underneath
+   them, and the selected channel pill painted across the messages because .ch
+   is positioned and .chat is not. The sidebar fills whatever the rail leaves,
+   so the two numbers cannot drift apart. */
+.left {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--t-surface-2);
+}
+.left-top { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 
 /* server rail (tier 1) */
 .guilds {
@@ -336,11 +351,13 @@ h1 {
 .guilds .g.home { background: var(--t-primary); color: var(--t-on-primary); }
 .guilds .g.home svg { width: 26px; height: 26px; }
 
-/* channel sidebar (tier 2) */
+/* channel sidebar (tier 2) - takes whatever the rail leaves of .left */
 .side {
-  flex: 0 0 232px;
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--t-surface-2);
   border-radius: var(--t-radius-container) 0 0 0;
 }
@@ -491,6 +508,8 @@ h1 {
   color: var(--t-on-tertiary-container);
   font-variation-settings: "wght" 600;
 }
+/* posted links take the primary role, as they do in the theme */
+.msg .lnk { color: var(--t-primary); word-break: break-all; }
 .msg code {
   padding: 2px 6px;
   border-radius: var(--t-radius-code);
@@ -692,7 +711,7 @@ h1 {
    this margin-top to 0. What looked like a gap was only the slider's own
    bottom padding. */
 .page .caption {
-  margin: 28px 0 0;
+  margin: 18px 0 0;
   padding-inline: clamp(16px, 2.4vw, 24px);
   font-size: 14px;
   color: var(--t-text-low);
@@ -863,12 +882,16 @@ footer a { color: var(--t-text-mid); }
 }
 @media (max-width: 760px) {
   .guilds { display: none; }
+  /* the rail's 68px go back to the column, not to the sidebar */
+  .left { flex-basis: 232px; }
 }
 /* Below this the two remaining panes leave the chat too narrow to read a
    sentence in, so they stack instead: the sidebar keeps the selected-channel
    pill, the chat keeps the messages, and both get the full width. */
 @media (max-width: 620px) {
   .app { flex-direction: column; }
+  /* stacked: the basis would now be a height, so hand the sizing back */
+  .left { flex: 0 0 auto; }
   .side { border-radius: var(--t-radius-container) var(--t-radius-container) 0 0; }
   .side ul { flex: 0 0 auto; }
   /* the account panel repeats what the member list already showed */
@@ -960,7 +983,9 @@ footer a { color: var(--t-text-mid); }
             ${message(
               CAST.loan,
               '21:03',
-              'you have not even heard the playlist',
+              // the link is what makes the embed below it legitimate - Discord
+              // unfurls a card because a URL was posted, not on its own
+              'you have not even heard the playlist<br><span class="lnk">open.spotify.com/playlist/2Kv9Rm4Tjq</span>',
               '<div class="embed"><span class="e-author">Playlist</span><span class="e-title">every song i know</span><span class="e-desc">1 track &middot; 3 hr 14 min</span></div>'
             )}
             ${message(CAST.trayved, '21:03', 'we heard it. that is the entire problem.')}
@@ -974,8 +999,9 @@ footer a { color: var(--t-text-mid); }
             ${member(CAST.aeycen, 'on')}
             ${member(CAST.trayved)}
             ${member(CAST.loan)}
-            <li class="cat">Offline &mdash; 1</li>
+            <li class="cat">Offline &mdash; 2</li>
             ${member(CAST.gianiii, 'off')}
+            ${member(CAST.l8, 'off')}
           </ul>
         </div>
       </div>
