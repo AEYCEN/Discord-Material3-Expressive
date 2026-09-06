@@ -12,14 +12,20 @@
 //
 // Run after build:css, which produces build/main.css.
 
-import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile, readdir } from 'node:fs/promises';
 
 const START = new URL('../src/start/_index.scss', import.meta.url);
 const COMPILED = new URL('../build/main.css', import.meta.url);
+const DIST_SRC = new URL('../dist/', import.meta.url);
+const ROOT = new URL('../', import.meta.url);
 const OUT = new URL('../public/index.html', import.meta.url);
-const LOGO = 'aeycen.png'; // author mark, shown next to the byline
+const LOGO = 'aeycen.png'; // author mark, and the account avatar in the preview
 const FAVICON = 'm3-favicon.svg'; // the Material Design mark
-const ASSETS = [LOGO, FAVICON]; // copied from assets/ into public/ next to index.html
+// Avatars for the people in the preview conversation. A name with no file here
+// falls back to its initials on a hue-derived plate, so adding a picture later
+// is one more entry - nothing else has to change.
+const AVATARS = ['trayved.png', 'loan.png'];
+const ASSETS = [LOGO, FAVICON, ...AVATARS]; // copied from assets/ into public/
 
 // The --t-hue default is written as a negative angle. Hue is mod 360, so the
 // slider shows the equivalent 0-360 value: -187 and 173 are the same colour.
@@ -53,8 +59,22 @@ const tokens = rootBlock(await readFile(COMPILED, 'utf8'));
 
 const importUrl = `${v.website}/${v.mainImport}`;
 const authorUrl = `https://github.com/${v.repo.replace(/.*github\.com\//, '').split('/')[0]}`;
-const quickCssFile = `${v.repo}/blob/main/${v.themeName.replace(/\s+/g, '-')}-v1-Vencord.css`;
-const rawQuickCss = `${v.repo.replace('github.com', 'raw.githubusercontent.com')}/main/${v.themeName.replace(/\s+/g, '-')}-v1-Vencord.css`;
+
+// The distributable's name is whatever dist/ is called - "Material3-Expressive",
+// not the theme name with its spaces hyphenated ("Material-3-Expressive"). Those
+// differ, and deriving it from $themeName pointed both buttons at a 404. Read
+// the real name so the two cannot disagree again.
+const distName = (await readdir(DIST_SRC))
+  .filter((f) => f.endsWith('.scss') && !f.startsWith('_'))
+  .map((f) => f.replace(/\.scss$/, '.css'))[0];
+if (!distName) throw new Error('no distributable source in dist/');
+
+// build:dist compiles dist/*.scss to the repo root, and runs before this script
+// so the text below is the file the buttons point at, not the previous build's.
+const quickCss = await readFile(new URL(distName, ROOT), 'utf8').catch(() => {
+  throw new Error(`${distName} missing - run build:dist before build:landing`);
+});
+const quickCssFile = `${v.repo}/blob/main/${distName}`;
 
 // --- preview furniture -------------------------------------------------------
 // The two icons Discord uses in the channel list, drawn here so the page keeps
@@ -66,8 +86,44 @@ const ICON_VOICE =
 
 const channel = (name, state) => `<li class="ch ${state}">${ICON_HASH}<span>${name}</span></li>`;
 
-const member = (initials, name, tint, state = '') =>
-  `<li class="mem ${state}"><span class="av" style="--av:${tint}">${initials}</span><span>${name}</span></li>`;
+/** inline an SVG from assets/symbols, stripped of its own size and colour so it
+    inherits the button's currentColor and the .i sizing */
+async function symbol(file, cls) {
+  const raw = await readFile(new URL(`../assets/symbols/${file}`, import.meta.url), 'utf8');
+  return raw
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\s(?:width|height|fill)="[^"]*"/g, '')
+    .replace('<svg', `<svg class="${cls}" fill="currentColor" aria-hidden="true"`);
+}
+const ICON_GITHUB = await symbol('github-brands-solid-full.svg', 'gh');
+const ICON_CHECK = await symbol('check_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg', 'ok');
+
+// The people in the preview. `img` is optional: without one the avatar falls
+// back to initials on a plate tinted at `tint` degrees off the seed hue, so it
+// still retunes with everything else.
+const CAST = {
+  aeycen: { name: 'ΛΕYCEN', img: LOGO, tint: 0 },
+  trayved: { name: 'TRAYVED', img: 'trayved.png', tint: 52 },
+  loan: { name: 'Loan', img: 'loan.png', tint: -46 },
+  gianiii: { name: 'Gianiii', initials: 'GI', tint: 96 },
+};
+
+const avatar = (who, cls = 'av') =>
+  `<span class="${cls}" style="--av:${who.tint}">` +
+  (who.img ? `<img src="${who.img}" alt="" loading="lazy" decoding="async">` : who.initials) +
+  '</span>';
+
+const member = (who, state = '') =>
+  `<li class="mem ${state}">${avatar(who)}<span>${who.name}</span></li>`;
+
+const message = (who, time, body, extra = '') => `
+            <div class="msg">
+              ${avatar(who)}
+              <div class="body">
+                <div class="line"><span class="who">${who.name}</span><time>${time}</time></div>
+                <p>${body}</p>${extra}
+              </div>
+            </div>`;
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -117,6 +173,7 @@ body {
 }
 
 .page {
+  position: relative; /* anchors the GitHub icon button to the top right */
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
@@ -192,9 +249,13 @@ h1 {
   background: var(--t-surface-0);
 }
 
+/* Sized by its content, not by the viewport. A vh-based height clipped the top
+   of the conversation on a short window, and the first message is the one that
+   sets the joke up - a scrollback that hides its own premise is worse than a
+   preview that is simply as tall as it needs to be. */
 .app {
   display: flex;
-  height: clamp(400px, 58vh, 540px);
+  min-height: 400px;
   overflow: hidden;
   border-radius: var(--t-radius-container);
   font-size: 14px;
@@ -327,10 +388,10 @@ h1 {
 }
 .chat .head .i { color: var(--t-text-low); }
 
-/* monogram sits under the messages, as it does in the theme */
+/* The theme's chat monogram is not drawn here. It is set in Anurati, which the
+   visitor almost certainly does not have installed, so it rendered in a fallback
+   face that looked nothing like the real thing. */
 .log {
-  position: relative;
-  isolation: isolate;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -339,32 +400,7 @@ h1 {
   justify-content: flex-end;
   gap: 14px;
   padding: 20px 16px 8px;
-  container-type: inline-size;
-  container-name: t-chat;
 }
-.log::before {
-  content: var(--t-monogram);
-  position: absolute;
-  inset: 0;
-  padding: 0 24px 20px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  font-family: var(--t-monogram-font);
-  font-size: 64px;
-  letter-spacing: var(--t-monogram-spacing);
-  text-transform: uppercase;
-  line-height: 1;
-  color: hsl(var(--t-hue) 100% 86% / var(--t-monogram-opacity));
-  white-space: nowrap;
-  z-index: -1;
-}
-/* same 420px floor the theme uses: below it the monogram is wider than the
-   chat pane and reads as a smudge behind the messages rather than a mark */
-@container t-chat (max-width: 419px) {
-  .log::before { display: none; }
-}
-
 .msg { display: flex; gap: 12px; }
 .av {
   flex: 0 0 auto;
@@ -372,13 +408,21 @@ h1 {
   height: 36px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border-radius: var(--t-radius-pill);
-  /* avatars are offsets from the seed hue, so they retune with everything else */
+  /* the plate is only for initials, and is an offset from the seed hue so those
+     retune with everything else. :has() drops it behind a picture - all of them
+     are transparent artwork, which a coloured disc sitting behind would turn
+     into a badge none of them are. */
   background: hsl(calc(var(--t-hue) + var(--av, 0)) 32% 40%);
   color: var(--t-text-high);
   font-size: 13px;
   font-variation-settings: "wght" 700;
 }
+.av:has(img) { background: none; }
+/* contain, not cover: these are marks with their own margins, and one of them
+   is wider than it is tall - cropping to a square would cut its edges off */
+.av img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .msg .body { min-width: 0; }
 .msg .line { display: flex; align-items: baseline; gap: 8px; }
 .msg .who { font-variation-settings: "wght" 650; color: var(--t-text-high); }
@@ -560,7 +604,27 @@ h1 {
   border-radius: var(--t-radius-pill);
 }
 
-.caption { margin: 12px 0 0; max-width: 62ch; font-size: 14px; color: var(--t-text-low); }
+/* Indented to the slider's own padding so it lines up with the label above it,
+   and kept on one line - the sentence is the slider's caption, not a paragraph.
+   It shrinks with the viewport instead of wrapping, and only below the width
+   where that would get too small does it become two lines. */
+/* .page .caption, not .caption: the generic ".page p" rule above is a class
+   plus a type selector, so it outranks a lone class and was quietly resetting
+   this margin-top to 0. What looked like a gap was only the slider's own
+   bottom padding. */
+.page .caption {
+  margin: 28px 0 0;
+  padding-inline: clamp(16px, 2.4vw, 24px);
+  font-size: 14px;
+  color: var(--t-text-low);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 900px) {
+  /* must match the base rule's specificity or it cannot override the nowrap */
+  .page .caption { white-space: normal; max-width: 62ch; }
+}
 
 /* ---------- install ---------- */
 .url { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -622,6 +686,12 @@ h1 {
 button, .btn {
   --btn-pad-y: 12px;
   flex: 0 0 auto;
+  /* inline-flex so a confirmation icon can sit beside the label. The icon is
+     18px and the line box is 18.75px, so the icon never sets the height and
+     0.5lh stays half of it. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--btn-pad-y) 20px;
   border: none;
   border-radius: calc(0.5lh + var(--btn-pad-y));
@@ -637,7 +707,20 @@ button, .btn {
   cursor: pointer;
   transition: border-radius var(--t-dur-base) var(--t-spring-bouncy),
               transform var(--t-dur-base) var(--t-spring-bouncy),
+              width var(--t-dur-base) var(--t-spring-bouncy),
               background-color var(--t-dur-fast) ease;
+}
+
+/* Confirming a copy changes both the label and the button's width, and swapping
+   the two at once is the jump. So they are separated: the label fades out, the
+   text is exchanged while it is invisible, and the width springs to its new
+   value as the new label fades back in. The width has to be measured and
+   written in pixels for that - auto does not animate. */
+.lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 130ms ease;
 }
 button:hover, .btn:hover {
   border-radius: var(--t-radius-input);
@@ -650,6 +733,27 @@ a:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 3px; }
 
 .btn.secondary, button.secondary { background: var(--t-surface-4); color: var(--t-text-high); }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* the tick that replaces nothing - it joins the label, so the button still says
+   what happened rather than only showing a mark */
+.ok { width: 18px; height: 18px; flex: 0 0 auto; }
+
+/* Icon button, top right. Square and circular at rest, and it takes the same
+   hover morph as every other button here: the shared :hover rule pulls the
+   radius to --t-radius-input, which on a 48px square is a clear squircle. */
+.gh-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 24px;
+  background: var(--t-surface-4);
+  color: var(--t-text-high);
+}
+.gh { width: 22px; height: 22px; }
 
 /* ---------- author + footer ---------- */
 .author { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -694,13 +798,11 @@ footer a { color: var(--t-text-mid); }
   /* the account panel repeats what the member list already showed */
   .side .panel { display: none; }
   .chat {
-    height: 340px;
     border-radius: 0 0 var(--t-radius-container) var(--t-radius-container);
   }
 }
 @media (max-width: 420px) {
   .app { font-size: 13px; }
-  .chat { height: 300px; }
 }
 @media (max-width: 720px) {
   .hue {
@@ -722,6 +824,8 @@ footer a { color: var(--t-text-mid); }
 <body>
 <div class="page">
 
+  <a class="btn gh-btn" href="${esc(v.repo)}" aria-label="This theme on GitHub">${ICON_GITHUB}</a>
+
   <div class="hero">
     <h1>${esc(v.themeName)}</h1>
     <div class="meta">
@@ -735,7 +839,7 @@ footer a { color: var(--t-text-mid); }
     <div class="window">
       <div class="app" role="img" aria-label="A Discord window in the ${esc(v.themeName)} theme: surfaces tinted in the seed hue, the selected channel as a pill in the primary container colour, categories in secondary, and mentions and unread markers in tertiary.">
         <div class="guilds" aria-hidden="true">
-          <span class="g on">M3</span>
+          <span class="g on">LY</span>
           <span class="sep"></span>
           <span class="g">DV<span class="badge">3</span></span>
           <span class="g">VC</span>
@@ -743,73 +847,42 @@ footer a { color: var(--t-text-mid); }
         </div>
 
         <div class="side" aria-hidden="true">
-          <div class="head">Material You</div>
+          <div class="head">LYGHTNING</div>
           <ul>
             <li class="cat">Text</li>
-            ${channel('welcome', 'muted')}
-            ${channel('design-system', 'on')}
-            ${channel('releases', 'unread')}
-            ${channel('help', '')}
+            ${channel('hello-there', 'muted')}
+            ${channel('english-chat', 'on')}
+            ${channel('german-chat', 'unread')}
+            ${channel('tech-support', '')}
             <li class="cat">Voice</li>
             <li class="ch">${ICON_VOICE}<span>Lounge</span></li>
           </ul>
           <div class="panel">
-            <span class="av" style="--av:0">AE</span>
-            <span class="who"><span class="n">aeycen</span><span class="s">Online</span></span>
+            ${avatar(CAST.aeycen)}
+            <span class="who"><span class="n">${CAST.aeycen.name}</span><span class="s">Online</span></span>
           </div>
         </div>
 
         <div class="chat" aria-hidden="true">
-          <div class="head">${ICON_HASH}<span>design-system</span></div>
+          <div class="head">${ICON_HASH}<span>english-chat</span></div>
           <div class="log">
-            <div class="msg">
-              <span class="av" style="--av:96">KJ</span>
-              <div class="body">
-                <div class="line"><span class="who">kaj</span><time>10:58</time></div>
-                <p>Which part of this is doing the heavy lifting? It cannot all be selectors.</p>
-              </div>
-            </div>
-            <div class="msg">
-              <span class="av" style="--av:52">RB</span>
-              <div class="body">
-                <div class="line"><span class="who">robin</span><time>11:01</time></div>
-                <p>Most of it is Discord&rsquo;s own variables, reassigned. Only geometry and motion need class names.</p>
-              </div>
-            </div>
-            <div class="msg">
-              <span class="av" style="--av:52">RB</span>
-              <div class="body">
-                <div class="line"><span class="who">robin</span><time>11:04</time></div>
-                <p>Surfaces go six tiers deep, every one of them tinted with the seed hue. Nothing is flat grey.</p>
-              </div>
-            </div>
-            <div class="msg">
-              <span class="av" style="--av:-46">TH</span>
-              <div class="body">
-                <div class="line"><span class="who">theo</span><span class="tag">BOT</span><time>11:06</time></div>
-                <p>Built <code>main.css</code> in 1.4s and published it to Pages.</p>
-                <div class="reacts"><span class="me">&#128077; 4</span><span>&#127881; 2</span></div>
-              </div>
-            </div>
-            <div class="msg">
-              <span class="av" style="--av:0">AE</span>
-              <div class="body">
-                <div class="line"><span class="who">aeycen</span><time>11:09</time></div>
-                <p><span class="at">@robin</span> mentions and unread markers are the only things using tertiary.</p>
-              </div>
-            </div>
+            ${message(CAST.aeycen, '21:02', 'vote: is <span class="at">@Loan</span> allowed to pick the music again')}
+            ${message(CAST.trayved, '21:02', 'no', '<div class="reacts"><span class="me">&#128077; 7</span><span>&#128175; 4</span></div>')}
+            ${message(CAST.gianiii, '21:02', 'no')}
+            ${message(CAST.loan, '21:03', 'you have not even heard the playlist')}
+            ${message(CAST.trayved, '21:03', 'we heard it. that is the entire problem.')}
           </div>
-          <div class="composer">Message #design-system</div>
+          <div class="composer">Message #english-chat</div>
         </div>
 
         <div class="members" aria-hidden="true">
           <ul>
             <li class="cat">Online &mdash; 3</li>
-            ${member('AE', 'aeycen', '0', 'on')}
-            ${member('RB', 'robin', '52')}
-            ${member('TH', 'theo', '-46')}
+            ${member(CAST.aeycen, 'on')}
+            ${member(CAST.trayved)}
+            ${member(CAST.loan)}
             <li class="cat">Offline &mdash; 1</li>
-            ${member('KJ', 'kaj', '96', 'off')}
+            ${member(CAST.gianiii, 'off')}
           </ul>
         </div>
       </div>
@@ -821,12 +894,9 @@ footer a { color: var(--t-text-mid); }
         <input id="hue" type="range" min="0" max="360" step="1" value="${HUE_DEFAULT}">
       </div>
       <span class="val" id="hueval" aria-hidden="true">${HUE_DEFAULT}</span>
-      <button id="copyhue" type="button" class="secondary" data-label="Copy hue">Copy hue</button>
+      <button id="copyhue" type="button" class="secondary" data-label="Copy hue"><span class="lbl">Copy hue</span></button>
     </div>
-    <p class="caption">
-      Drag to retune the preview and this page together, the way the theme retunes Discord.
-      Copy the hue to paste it into your QuickCSS.
-    </p>
+    <p class="caption">Drag to retune the preview and this page together. Copy the hue for your QuickCSS.</p>
   </div>
 
   <section>
@@ -839,7 +909,7 @@ footer a { color: var(--t-text-mid); }
     </p>
     <div class="url">
       <code id="url">${esc(importUrl)}</code>
-      <button id="copyurl" type="button" data-label="Copy URL" data-url="${esc(importUrl)}">Copy URL</button>
+      <button id="copyurl" type="button" data-label="Copy URL" data-url="${esc(importUrl)}"><span class="lbl">Copy URL</span></button>
     </div>
   </section>
 
@@ -872,8 +942,12 @@ footer a { color: var(--t-text-mid); }
       its default: the hue, surface opacity, a background image, the chat monogram, the radii,
       the motion springs. Delete a line to fall back to that default.
     </p>
+    <p class="prose">
+      Copy it, then paste it into <span class="path"><b>Settings</b> <i>&rsaquo;</i> <b>Themes</b>
+      <i>&rsaquo;</i> <b>Edit QuickCSS</b></span>. Nothing to download.
+    </p>
     <div class="actions">
-      <a class="btn secondary" href="${esc(rawQuickCss)}">Get the QuickCSS file</a>
+      <button id="copyquick" type="button" data-label="Copy QuickCSS"><span class="lbl">Copy QuickCSS</span></button>
       <a class="btn secondary" href="${esc(quickCssFile)}">View on GitHub</a>
     </div>
   </section>
@@ -894,6 +968,10 @@ footer a { color: var(--t-text-mid); }
   </footer>
 
 </div>
+<!-- The distributable itself, so "Copy QuickCSS" needs no download and no
+     network call. type="text/plain" keeps the parser from running it as script
+     while leaving textContent byte-for-byte what build:dist produced. -->
+<script type="text/plain" id="quickcss-src">${quickCss.replace(/<\/(script)/gi, '<\\/$1')}</script>
 <script>
 (function () {
   var root = document.documentElement;
@@ -938,12 +1016,45 @@ footer a { color: var(--t-text-mid); }
     return ok;
   }
 
+  var CHECK = '${ICON_CHECK}';
+  var FADE = 130; // matches the .lbl opacity transition
+  var REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Swapping the label and the width together is what made the change snap.
+  // Here the label fades out first, the text is exchanged while it cannot be
+  // seen, and only then does the width spring to its new value with the new
+  // label fading back in. Both directions go through this, so returning to the
+  // resting label is as smooth as leaving it.
+  function swapLabel(b, html) {
+    var lbl = b.querySelector('.lbl');
+    if (REDUCED) { lbl.innerHTML = html; return; }
+    lbl.style.opacity = '0';
+    setTimeout(function () {
+      // offsetWidth, not getBoundingClientRect: the pointer is still over the
+      // button, so its rect carries the 1.06 hover scale. Measuring that and
+      // writing it back as a width made the button 6% wider on every swap, and
+      // it compounded. offsetWidth is the layout width and ignores transforms.
+      var from = b.offsetWidth;
+      lbl.innerHTML = html;
+      b.style.width = 'auto';
+      var to = b.offsetWidth;
+      b.style.width = from + 'px';
+      var flush = b.offsetWidth; // commit the start value so the next one animates
+      void flush;
+      b.style.width = to + 'px';
+      lbl.style.opacity = '1';
+    }, FADE);
+  }
+
   function onCopy(id, read, done, selectId) {
     var b = document.getElementById(id);
+    if (!b) return;
     b.addEventListener('click', function () {
       var text = read();
-      var reset = function () { setTimeout(function () { b.textContent = b.dataset.label; }, 2000); };
-      var ok = function () { b.textContent = done; reset(); };
+      var reset = function () { setTimeout(function () { swapLabel(b, b.dataset.label); }, 2000); };
+      // the tick joins the label rather than replacing it, so the button still
+      // says what happened
+      var ok = function () { swapLabel(b, CHECK + '<span>' + done + '</span>'); reset(); };
       // last resort: put the text under a selection so it can be copied by hand
       var select = function () {
         var r = document.createRange();
@@ -951,7 +1062,7 @@ footer a { color: var(--t-text-mid); }
         var s = getSelection();
         s.removeAllRanges();
         s.addRange(r);
-        b.textContent = 'Select and copy';
+        swapLabel(b, 'Select and copy');
         reset();
       };
       if (writeClipboard(text)) return ok();
@@ -961,6 +1072,8 @@ footer a { color: var(--t-text-mid); }
   }
   onCopy('copyhue', function () { return '--t-hue: ' + hue.value + ';'; }, 'Hue copied', 'hueval');
   onCopy('copyurl', function () { return document.getElementById('copyurl').dataset.url; }, 'URL copied', 'url');
+  // the whole distributable, embedded above - no download, no network at click
+  onCopy('copyquick', function () { return document.getElementById('quickcss-src').textContent; }, 'QuickCSS copied', 'url');
 })();
 </script>
 </body>
