@@ -84,6 +84,17 @@ const ICON_HASH =
 const ICON_VOICE =
   '<svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 4.2 6.8 8.3H3.4a1 1 0 0 0-1 1v5.4a1 1 0 0 0 1 1h3.4l4.7 4.1a.8.8 0 0 0 1.3-.6V4.8a.8.8 0 0 0-1.3-.6Zm4.6 3.1a1 1 0 0 0-1 1.7 4 4 0 0 1 0 6 1 1 0 0 0 1 1.7 6 6 0 0 0 0-9.4Z"/></svg>';
 
+// Discord's own mark, for the direct-messages button above the server list.
+const ICON_DISCORD =
+  '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.63 5.65a16.2 16.2 0 0 0-4.07-1.26.06.06 0 0 0-.07.03c-.17.31-.37.72-.51 1.04a15 15 0 0 0-4.49 0 10.3 10.3 0 0 0-.52-1.04.06.06 0 0 0-.06-.03c-1.42.24-2.79.67-4.07 1.26a.06.06 0 0 0-.03.02C2.9 9.52 2.2 13.28 2.55 17a.07.07 0 0 0 .02.05 16.3 16.3 0 0 0 4.92 2.49.06.06 0 0 0 .07-.02c.38-.52.72-1.06.1-1.63a.06.06 0 0 0-.04-.09 10.7 10.7 0 0 1-1.53-.73.06.06 0 0 1 0-.1l.3-.24a.06.06 0 0 1 .07 0 11.6 11.6 0 0 0 9.86 0 .06.06 0 0 1 .07 0l.3.24a.06.06 0 0 1 0 .1c-.49.29-1 .53-1.53.73a.06.06 0 0 0-.04.09c.3.57.64 1.11 1 1.63a.06.06 0 0 0 .07.02 16.2 16.2 0 0 0 4.93-2.49.06.06 0 0 0 .02-.04c.42-4.3-.69-8.02-2.92-11.34a.05.05 0 0 0-.02-.02ZM8.68 14.735c-.97 0-1.77-.89-1.77-1.98s.78-1.99 1.77-1.99c1 0 1.79.9 1.77 1.99 0 1.09-.78 1.98-1.77 1.98Zm6.53 0c-.97 0-1.77-.89-1.77-1.98s.78-1.99 1.77-1.99c1 0 1.79.9 1.77 1.99 0 1.09-.77 1.98-1.77 1.98Z"/></svg>';
+
+// Panel controls. Stroked rather than filled so the three read as one set.
+const ctlIcon = (body) =>
+  `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg></span>`;
+const ICON_MIC = ctlIcon('<rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>');
+const ICON_HEADSET = ctlIcon('<path d="M4 14.5V12a8 8 0 0 1 16 0v2.5"/><rect x="2" y="13.5" width="4.5" height="7" rx="2.25"/><rect x="17.5" y="13.5" width="4.5" height="7" rx="2.25"/>');
+const ICON_GEAR = ctlIcon('<circle cx="12" cy="12" r="6.6"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2.6v2.8M12 18.6v2.8M21.4 12h-2.8M5.4 12H2.6M18.65 5.35 16.7 7.3M7.3 16.7l-1.95 1.95M18.65 18.65 16.7 16.7M7.3 7.3 5.35 5.35"/>');
+
 const channel = (name, state) => `<li class="ch ${state}">${ICON_HASH}<span>${name}</span></li>`;
 
 /** inline an SVG from assets/symbols, stripped of its own size and colour so it
@@ -249,10 +260,11 @@ h1 {
   background: var(--t-surface-0);
 }
 
-/* Sized by its content, not by the viewport. A vh-based height clipped the top
-   of the conversation on a short window, and the first message is the one that
-   sets the joke up - a scrollback that hides its own premise is worse than a
-   preview that is simply as tall as it needs to be. */
+/* Below the widest layout the height follows the content, because a fixed ratio
+   on a narrow box clips the top of the conversation - and the first message is
+   the one that sets the joke up. Past 1180px the page is at its 1120px cap, so
+   the preview's width stops changing and 16:9 resolves to one constant height
+   that the content is known to fit. */
 .app {
   display: flex;
   min-height: 400px;
@@ -260,7 +272,16 @@ h1 {
   border-radius: var(--t-radius-container);
   font-size: 14px;
 }
+@media (min-width: 1180px) {
+  .app { aspect-ratio: 16 / 9; min-height: 0; }
+}
 .app .i { width: 18px; height: 18px; flex: 0 0 auto; }
+
+/* The rail and the sidebar share a column so the account panel can sit under
+   both, the way it does in Discord - it is one panel spanning the whole left
+   side, not something tucked inside the channel list. */
+.left { flex: 0 0 auto; display: flex; flex-direction: column; background: var(--t-surface-2); }
+.left-top { display: flex; flex: 1; min-height: 0; }
 
 /* server rail (tier 1) */
 .guilds {
@@ -308,7 +329,12 @@ h1 {
   line-height: 18px;
   font-variation-settings: "wght" 700;
 }
+/* The separator sits under the home button only. It divides direct messages
+   from the servers - the selected server is marked by the pill beside it, not
+   by a rule above it. */
 .guilds .sep { width: 22px; height: 2px; border-radius: 2px; background: var(--rule); }
+.guilds .g.home { background: var(--t-primary); color: var(--t-on-primary); }
+.guilds .g.home svg { width: 26px; height: 26px; }
 
 /* channel sidebar (tier 2) */
 .side {
@@ -316,7 +342,7 @@ h1 {
   display: flex;
   flex-direction: column;
   background: var(--t-surface-2);
-  border-radius: var(--t-radius-container) 0 0 var(--t-radius-container);
+  border-radius: var(--t-radius-container) 0 0 0;
 }
 .side .head {
   padding: 0 16px;
@@ -360,19 +386,40 @@ h1 {
 }
 .ch.muted { color: var(--t-text-low); opacity: 0.7; }
 
-/* account panel */
+/* Account panel - a child of .left, so it spans the rail and the sidebar */
 .panel {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   margin: 0 8px 8px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-radius: var(--t-radius-card);
   background: var(--t-surface-3);
 }
-.panel .who { min-width: 0; line-height: 1.25; }
-.panel .n { display: block; font-size: 13px; font-variation-settings: "wght" 650; color: var(--t-text-high); }
+.panel .av { width: 32px; height: 32px; }
+.panel .who { flex: 1; min-width: 0; line-height: 1.2; }
+.panel .n {
+  display: block;
+  font-size: 13px;
+  font-variation-settings: "wght" 650;
+  color: var(--t-text-high);
+  /* a long name must not push the controls out of the panel */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .panel .s { display: block; font-size: 11px; color: var(--t-text-low); }
+/* mic, headset and settings, always visible - Discord never hides these */
+.panel .ctl { flex: 0 0 auto; display: flex; gap: 2px; color: var(--t-text-mid); }
+.panel .ctl span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--t-radius-code);
+}
+.panel .ctl svg { width: 17px; height: 17px; }
 
 /* chat (tier 1) */
 .chat { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--t-surface-1); }
@@ -463,6 +510,38 @@ h1 {
 }
 /* your own reaction reads as primary-container, same as in the theme */
 .reacts .me { background: var(--t-primary-container); color: var(--t-on-primary-container); }
+
+/* Embed: surface-2 card with a primary-container spine, mirroring the theme's
+   rule for embedFull. It was the one message-level feature the preview never
+   showed. */
+.embed {
+  margin-top: 8px;
+  max-width: 320px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--t-primary-container);
+  border-radius: var(--t-radius-card);
+  background: var(--t-surface-2);
+  line-height: 1.35;
+}
+.embed .e-author { display: block; font-size: 11px; color: var(--t-text-low); }
+.embed .e-title {
+  display: block;
+  margin-top: 2px;
+  font-variation-settings: "wght" 650;
+  color: var(--t-primary);
+}
+.embed .e-desc { display: block; margin-top: 2px; font-size: 13px; color: var(--t-text-mid); }
+
+/* Date divider. Discord's is a hairline with the day sitting on it. */
+.day {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  font-variation-settings: "wght" 650;
+  color: var(--t-text-low);
+}
+.day::before, .day::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
 
 .composer {
   margin: 4px 16px 16px;
@@ -789,14 +868,11 @@ footer a { color: var(--t-text-mid); }
    sentence in, so they stack instead: the sidebar keeps the selected-channel
    pill, the chat keeps the messages, and both get the full width. */
 @media (max-width: 620px) {
-  .app { flex-direction: column; height: auto; }
-  .side {
-    flex: 0 0 auto;
-    border-radius: var(--t-radius-container) var(--t-radius-container) 0 0;
-  }
+  .app { flex-direction: column; }
+  .side { border-radius: var(--t-radius-container) var(--t-radius-container) 0 0; }
   .side ul { flex: 0 0 auto; }
   /* the account panel repeats what the member list already showed */
-  .side .panel { display: none; }
+  .panel { display: none; }
   .chat {
     border-radius: 0 0 var(--t-radius-container) var(--t-radius-container);
   }
@@ -838,38 +914,55 @@ footer a { color: var(--t-text-mid); }
   <div>
     <div class="window">
       <div class="app" role="img" aria-label="A Discord window in the ${esc(v.themeName)} theme: surfaces tinted in the seed hue, the selected channel as a pill in the primary container colour, categories in secondary, and mentions and unread markers in tertiary.">
-        <div class="guilds" aria-hidden="true">
-          <span class="g on">LY</span>
-          <span class="sep"></span>
-          <span class="g">DV<span class="badge">3</span></span>
-          <span class="g">VC</span>
-          <span class="g">AE</span>
-        </div>
+        <div class="left" aria-hidden="true">
+          <div class="left-top">
+            <div class="guilds">
+              <span class="g home">${ICON_DISCORD}</span>
+              <span class="sep"></span>
+              <span class="g on">LY</span>
+              <span class="g">DV<span class="badge">3</span></span>
+              <span class="g">VC</span>
+              <span class="g">AE</span>
+            </div>
 
-        <div class="side" aria-hidden="true">
-          <div class="head">LYGHTNING</div>
-          <ul>
-            <li class="cat">Text</li>
-            ${channel('hello-there', 'muted')}
-            ${channel('english-chat', 'on')}
-            ${channel('german-chat', 'unread')}
-            ${channel('tech-support', '')}
-            <li class="cat">Voice</li>
-            <li class="ch">${ICON_VOICE}<span>Lounge</span></li>
-          </ul>
+            <div class="side">
+              <div class="head">LYGHTNING</div>
+              <ul>
+                <li class="cat">Information</li>
+                ${channel('announcements', 'muted')}
+                ${channel('hello-there', 'muted')}
+                <li class="cat">Text</li>
+                ${channel('english-chat', 'on')}
+                ${channel('german-chat', 'unread')}
+                ${channel('tech-support', '')}
+                ${channel('off-topic', '')}
+                <li class="cat">Voice</li>
+                <li class="ch">${ICON_VOICE}<span>Lounge</span></li>
+                <li class="ch">${ICON_VOICE}<span>Music</span></li>
+              </ul>
+            </div>
+          </div>
+
           <div class="panel">
             ${avatar(CAST.aeycen)}
             <span class="who"><span class="n">${CAST.aeycen.name}</span><span class="s">Online</span></span>
+            <span class="ctl">${ICON_MIC}${ICON_HEADSET}${ICON_GEAR}</span>
           </div>
         </div>
 
         <div class="chat" aria-hidden="true">
           <div class="head">${ICON_HASH}<span>english-chat</span></div>
           <div class="log">
+            <div class="day">Today</div>
             ${message(CAST.aeycen, '21:02', 'vote: is <span class="at">@Loan</span> allowed to pick the music again')}
             ${message(CAST.trayved, '21:02', 'no', '<div class="reacts"><span class="me">&#128077; 7</span><span>&#128175; 4</span></div>')}
             ${message(CAST.gianiii, '21:02', 'no')}
-            ${message(CAST.loan, '21:03', 'you have not even heard the playlist')}
+            ${message(
+              CAST.loan,
+              '21:03',
+              'you have not even heard the playlist',
+              '<div class="embed"><span class="e-author">Playlist</span><span class="e-title">every song i know</span><span class="e-desc">1 track &middot; 3 hr 14 min</span></div>'
+            )}
             ${message(CAST.trayved, '21:03', 'we heard it. that is the entire problem.')}
           </div>
           <div class="composer">Message #english-chat</div>
