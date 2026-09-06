@@ -16,6 +16,9 @@ import { readFile, writeFile, mkdir, copyFile, readdir } from 'node:fs/promises'
 
 const START = new URL('../src/start/_index.scss', import.meta.url);
 const COMPILED = new URL('../build/main.css', import.meta.url);
+const PREVIEW = new URL('../build/preview.css', import.meta.url);
+// the minified build of the same stylesheet, for the copy that goes in the page
+const THEME_MIN = new URL('../public/main.css', import.meta.url);
 const DIST_SRC = new URL('../dist/', import.meta.url);
 const ROOT = new URL('../', import.meta.url);
 const OUT = new URL('../public/index.html', import.meta.url);
@@ -25,7 +28,8 @@ const FAVICON = 'm3-favicon.svg'; // the Material Design mark
 // falls back to its initials on a hue-derived plate, so adding a picture later
 // is one more entry - nothing else has to change.
 const AVATARS = ['trayved.png', 'loan.png', '2_L_8.png'];
-const ASSETS = [LOGO, FAVICON, ...AVATARS]; // copied from assets/ into public/
+const GUILD_ICON = 'lyghtning.gif'; // the selected server's picture in the preview
+const ASSETS = [LOGO, FAVICON, GUILD_ICON, ...AVATARS]; // copied from assets/ into public/
 
 // The --t-hue default is written as a negative angle. Hue is mod 360, so the
 // slider shows the equivalent 0-360 value: -187 and 173 are the same colour.
@@ -48,6 +52,41 @@ function rootBlock(css) {
   return css.slice(i, j + 1);
 }
 
+
+/** Cut a GIF down to its first frame.
+ *
+ * The server icon should sit still - a looping animation next to a hue slider
+ * is two things moving for no reason. Rather than ask for a second, static
+ * file, the animation is dropped here: walk the block structure and stop after
+ * the first image descriptor's data, then write the trailer. No decoding, so no
+ * image library, and the frame stays byte-identical to what the source held.
+ * Format: https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+ */
+function gifFirstFrame(buf) {
+  if (buf.subarray(0, 3).toString('latin1') !== 'GIF') return buf;
+  const packed = buf[10]; // logical screen descriptor, packed fields
+  let p = 13;
+  if (packed & 0x80) p += 3 * (1 << ((packed & 0x07) + 1)); // global colour table
+  const skipSubBlocks = () => {
+    while (p < buf.length && buf[p] !== 0x00) p += 1 + buf[p];
+    p += 1;
+  };
+  while (p < buf.length) {
+    const marker = buf[p];
+    if (marker === 0x21) { p += 2; skipSubBlocks(); continue; } // extension
+    if (marker === 0x2c) {                                      // image descriptor
+      const local = buf[p + 9];
+      p += 10;
+      if (local & 0x80) p += 3 * (1 << ((local & 0x07) + 1));   // local colour table
+      p += 1;                                                    // LZW min code size
+      skipSubBlocks();
+      break;
+    }
+    break; // trailer, or something we do not recognise - leave it alone
+  }
+  return Buffer.concat([buf.subarray(0, Math.min(p, buf.length)), Buffer.from([0x3b])]);
+}
+
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -55,7 +94,40 @@ const v = sassVars(await readFile(START, 'utf8'));
 for (const k of ['themeName', 'version', 'desc', 'repo', 'website', 'mainImport']) {
   if (!v[k]) throw new Error(`missing $${k} in src/start/_index.scss`);
 }
+// The token block comes from the expanded build - its comments are the
+// user-facing documentation of every --t-* default, and the page shows them.
 const tokens = rootBlock(await readFile(COMPILED, 'utf8'));
+// The copy that paints the preview is the minified one: same stylesheet, 15 KB
+// less page weight, and it is literally the file the install URL serves.
+const themeCss = await readFile(THEME_MIN, 'utf8').catch(() => {
+  throw new Error('public/main.css missing - run build:min before build:landing');
+});
+
+// --- the preview's stand-in for Discord's stylesheet ---------------------------
+// build/preview.css carries two things: a block of hashed class names resolved
+// through the same map the theme uses, and the layout the theme does not
+// contain. Pull the names out; what is left is injected next to the theme.
+const previewSrc = await readFile(PREVIEW, 'utf8').catch(() => {
+  throw new Error('build/preview.css missing - run build:preview before build:landing');
+});
+const nameBlock = previewSrc.match(/#t-preview-classnames\s*\{([\s\S]*?)\n\}/);
+if (!nameBlock) throw new Error('no #t-preview-classnames block in build/preview.css');
+
+const CLS = {};
+for (const m of nameBlock[1].matchAll(/--([\w-]+):\s*'([^']+)'/g)) {
+  // a value may be a single ".foo" or a list compiled to ":is(.a,.b)" - Discord
+  // rolling a change out with both builds live. Carry every class, so whichever
+  // selector the theme ends up using still matches this markup.
+  CLS[m[1]] = [...m[2].matchAll(/\.([A-Za-z0-9_-]+)/g)].map((c) => c[1]).join(' ');
+  if (!CLS[m[1]]) throw new Error(`class export --${m[1]} resolved to nothing`);
+}
+const previewBase = previewSrc.replace(/#t-preview-classnames\s*\{[\s\S]*?\n\}\n?/, '');
+
+/** class attribute from one or more exported names */
+const k = (...names) => names.map((n) => {
+  if (!(n in CLS)) throw new Error(`unknown preview class "${n}" - add it to src/preview/index.scss`);
+  return CLS[n];
+}).join(' ');
 
 const importUrl = `${v.website}/${v.mainImport}`;
 const authorUrl = `https://github.com/${v.repo.replace(/.*github\.com\//, '').split('/')[0]}`;
@@ -95,7 +167,25 @@ const ICON_MIC = ctlIcon('<rect x="9" y="2.5" width="6" height="11" rx="3"/><pat
 const ICON_HEADSET = ctlIcon('<path d="M4 14.5V12a8 8 0 0 1 16 0v2.5"/><rect x="2" y="13.5" width="4.5" height="7" rx="2.25"/><rect x="17.5" y="13.5" width="4.5" height="7" rx="2.25"/>');
 const ICON_GEAR = ctlIcon('<circle cx="12" cy="12" r="6.6"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2.6v2.8M12 18.6v2.8M21.4 12h-2.8M5.4 12H2.6M18.65 5.35 16.7 7.3M7.3 16.7l-1.95 1.95M18.65 18.65 16.7 16.7M7.3 7.3 5.35 5.35"/>');
 
-const channel = (name, state) => `<li class="ch ${state}">${ICON_HASH}<span>${name}</span></li>`;
+// Discord's channel row: wrapper > link > icon + name. The nesting matters -
+// the theme's hover and state rules are written as descendant selectors against
+// exactly this shape.
+const channel = (name, state) => `
+              <li class="${k('ch-wrapper')}${state ? ' ' + k(state) : ''}">
+                ${state === 'ch-unread' ? `<div class="${k('ch-unread-pill')}"></div>` : ''}
+                <div class="${k('ch-link')}">
+                  ${ICON_HASH.replace('class="i"', `class="${k('ch-icon')}"`)}
+                  <div class="${k('ch-name')}">${name}</div>
+                </div>
+              </li>`;
+
+const voiceChannel = (name) => `
+              <li class="${k('ch-wrapper')}">
+                <div class="${k('ch-link')}">
+                  ${ICON_VOICE.replace('class="i"', `class="${k('ch-icon')}"`)}
+                  <div class="${k('ch-name')}">${name}</div>
+                </div>
+              </li>`;
 
 /** inline an SVG from assets/symbols, stripped of its own size and colour so it
     inherits the button's currentColor and the .i sizing */
@@ -120,22 +210,40 @@ const CAST = {
   l8: { name: '2_L_8', img: '2_L_8.png', tint: 140 },
 };
 
-const avatar = (who, cls = 'av') =>
-  `<span class="${cls}" style="--av:${who.tint}">` +
+// wrapper > childWrapper is Discord's shape, and childWrapper is the tile the
+// theme's hover, :active and selected rules all target.
+const guild = (label, { selected = false, mention = 0 } = {}) => `
+                      <div class="${k('guilds-item')}">
+                        ${selected ? `<div class="${k('guilds-pill')}"></div>` : ''}
+                        <div class="${k('guilds-icon-wrapper')}${selected ? ' ' + k('guilds-selected') : ''}">
+                          <div class="${k('guilds-home')}">${label}</div>
+                          ${mention ? `<div class="${k('guilds-mention')}">${mention}</div>` : ''}
+                        </div>
+                      </div>`;
+
+const avatar = (who) =>
+  `<span class="${k('msg-avatar')}" style="--av:${who.tint}">` +
   (who.img ? `<img src="${who.img}" alt="" loading="lazy" decoding="async">` : who.initials) +
   '</span>';
 
-const member = (who, state = '') =>
-  `<li class="mem ${state}">${avatar(who)}<span>${who.name}</span></li>`;
+const member = (who, off = false) => `
+              <li class="${k('member')}">
+                <div class="${k('member-inner')}${off ? ' t-member-off' : ''}">
+                  ${avatar(who)}<span class="${k('member-name')}">${who.name}</span>
+                </div>
+              </li>`;
 
 const message = (who, time, body, extra = '') => `
-            <div class="msg">
-              ${avatar(who)}
-              <div class="body">
-                <div class="line"><span class="who">${who.name}</span><time>${time}</time></div>
-                <p>${body}</p>${extra}
-              </div>
-            </div>`;
+              <div class="${k('msg', 'msg-cozy')}">
+                ${avatar(who)}
+                <div class="t-msg-body">
+                  <div class="t-msg-head">
+                    <span class="${k('msg-username')}">${who.name}</span>
+                    <span class="${k('msg-timestamp')}"><time>${time}</time></span>
+                  </div>
+                  <div class="${k('msg-markup')}">${body}</div>${extra}
+                </div>
+              </div>`;
 
 const html = `<!DOCTYPE html>
 <html lang="en">
@@ -246,9 +354,8 @@ h1 {
 .lede { max-width: 50ch; font-size: clamp(17px, 2vw, 19px); line-height: 1.55; }
 
 /* ---------- preview window ----------
-   Not a screenshot: the same tokens the theme assigns onto Discord's variables,
-   assigned onto a stand-in DOM. Every rule below mirrors one in src/main.scss
-   section 3, so the two cannot show different things. */
+   Everything inside the window is a shadow root holding the compiled theme, so
+   the only preview rules left out here are the frame and how big it is. */
 /* surface-0 is the window frame in the theme, and it is also this page's
    ground, so the bezel needs an outline to exist at all. A hairline does the
    job a drop shadow was doing before, without the soft wash of colour.
@@ -266,332 +373,19 @@ h1 {
    the one that sets the joke up. Past 1180px the page is at its 1120px cap, so
    the preview's width stops changing and 16:9 resolves to one constant height
    that the content is known to fit. */
-.app {
+.preview {
+  /* a flex column, because the shadow root's children lay out as this element's
+     own children - this is what gives them a bounded height without any
+     percentage in the chain */
   display: flex;
+  flex-direction: column;
   min-height: 400px;
   overflow: hidden;
   border-radius: var(--t-radius-container);
-  font-size: 14px;
 }
 @media (min-width: 1180px) {
-  .app { aspect-ratio: 16 / 9; min-height: 0; }
+  .preview { aspect-ratio: 16 / 9; min-height: 0; }
 }
-.app .i { width: 18px; height: 18px; flex: 0 0 auto; }
-
-/* The rail and the sidebar share a column so the account panel can sit under
-   both, the way it does in Discord - it is one panel spanning the whole left
-   side, not something tucked inside the channel list.
-
-   The 300px is written out (68 rail + 232 list) rather than left to an auto
-   flex basis. An intrinsic width here means the browser has to derive it from a
-   nested flex column, and Firefox resolved that to about the panel's own width:
-   the rail and the list then overflowed their column, .chat started underneath
-   them, and the selected channel pill painted across the messages because .ch
-   is positioned and .chat is not. The sidebar fills whatever the rail leaves,
-   so the two numbers cannot drift apart. */
-.left {
-  flex: 0 0 300px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--t-surface-2);
-}
-.left-top { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
-
-/* server rail (tier 1) */
-.guilds {
-  flex: 0 0 68px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  background: var(--t-surface-1);
-}
-.guilds .g {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--t-radius-card);
-  background: var(--t-surface-3);
-  color: var(--t-text-mid);
-  font-size: 15px;
-  font-variation-settings: "wght" 700;
-}
-.guilds .g.on { background: var(--t-primary); color: var(--t-on-primary); }
-/* selection pill, left of the icon */
-.guilds .g.on::before {
-  content: "";
-  position: absolute;
-  left: -12px;
-  width: 4px;
-  height: 28px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-primary);
-}
-.guilds .g .badge {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-tertiary);
-  color: var(--t-on-tertiary);
-  font-size: 11px;
-  line-height: 18px;
-  font-variation-settings: "wght" 700;
-}
-/* The separator sits under the home button only. It divides direct messages
-   from the servers - the selected server is marked by the pill beside it, not
-   by a rule above it. */
-.guilds .sep { width: 22px; height: 2px; border-radius: 2px; background: var(--rule); }
-.guilds .g.home { background: var(--t-primary); color: var(--t-on-primary); }
-.guilds .g.home svg { width: 26px; height: 26px; }
-
-/* channel sidebar (tier 2) - takes whatever the rail leaves of .left */
-.side {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--t-surface-2);
-  border-radius: var(--t-radius-container) 0 0 0;
-}
-.side .head {
-  padding: 0 16px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  font-variation-settings: "wght" 650;
-  color: var(--t-text-high);
-}
-.side ul { margin: 0; padding: 0 0 8px; list-style: none; flex: 1; min-height: 0; }
-
-/* categories: secondary tone, no uppercase shouting */
-.cat { padding: 14px 12px 4px; font-size: 12px; font-variation-settings: "wght" 600; color: var(--t-secondary); }
-
-/* channel rows are pills; the selected one is the theme's signature element */
-.ch {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 1px 8px 1px 6px;
-  padding: 6px 10px;
-  border-radius: var(--t-radius-pill);
-  color: var(--t-text-mid);
-}
-.ch .i { color: var(--t-text-low); }
-.ch.on { background: var(--t-primary-container); }
-.ch.on, .ch.on .i { color: var(--t-on-primary-container); }
-.ch.unread { color: var(--t-text-high); font-variation-settings: "wght" 650; }
-.ch.unread .i { color: var(--t-text-high); }
-.ch.unread::before {
-  content: "";
-  position: absolute;
-  left: -6px;
-  top: 50%;
-  translate: 0 -50%;
-  width: 4px;
-  height: 8px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-tertiary);
-}
-.ch.muted { color: var(--t-text-low); opacity: 0.7; }
-
-/* Account panel - a child of .left, so it spans the rail and the sidebar */
-.panel {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 8px 8px;
-  padding: 6px 8px;
-  border-radius: var(--t-radius-card);
-  background: var(--t-surface-3);
-}
-.panel .av { width: 32px; height: 32px; }
-.panel .who { flex: 1; min-width: 0; line-height: 1.2; }
-.panel .n {
-  display: block;
-  font-size: 13px;
-  font-variation-settings: "wght" 650;
-  color: var(--t-text-high);
-  /* a long name must not push the controls out of the panel */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.panel .s { display: block; font-size: 11px; color: var(--t-text-low); }
-/* mic, headset and settings, always visible - Discord never hides these */
-.panel .ctl { flex: 0 0 auto; display: flex; gap: 2px; color: var(--t-text-mid); }
-.panel .ctl span {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--t-radius-code);
-}
-.panel .ctl svg { width: 17px; height: 17px; }
-
-/* chat (tier 1) */
-.chat { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--t-surface-1); }
-.chat .head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 48px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--rule);
-  color: var(--t-text-high);
-  font-variation-settings: "wght" 650;
-}
-.chat .head .i { color: var(--t-text-low); }
-
-/* The theme's chat monogram is not drawn here. It is set in Anurati, which the
-   visitor almost certainly does not have installed, so it rendered in a fallback
-   face that looked nothing like the real thing. */
-.log {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 14px;
-  padding: 20px 16px 8px;
-}
-.msg { display: flex; gap: 12px; }
-.av {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: var(--t-radius-pill);
-  /* the plate is only for initials, and is an offset from the seed hue so those
-     retune with everything else. :has() drops it behind a picture - all of them
-     are transparent artwork, which a coloured disc sitting behind would turn
-     into a badge none of them are. */
-  background: hsl(calc(var(--t-hue) + var(--av, 0)) 32% 40%);
-  color: var(--t-text-high);
-  font-size: 13px;
-  font-variation-settings: "wght" 700;
-}
-.av:has(img) { background: none; }
-/* contain, not cover: these are marks with their own margins, and one of them
-   is wider than it is tall - cropping to a square would cut its edges off */
-.av img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.msg .body { min-width: 0; }
-.msg .line { display: flex; align-items: baseline; gap: 8px; }
-.msg .who { font-variation-settings: "wght" 650; color: var(--t-text-high); }
-.msg time { font-size: 11px; color: var(--t-text-low); }
-.msg p { margin: 2px 0 0; line-height: 1.45; }
-.tag {
-  padding: 1px 5px;
-  border-radius: var(--t-radius-code);
-  background: var(--t-surface-4);
-  color: var(--t-text-mid);
-  font-size: 10px;
-  font-variation-settings: "wght" 650;
-  letter-spacing: 0.02em;
-}
-.at {
-  padding: 0 6px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-tertiary-container);
-  color: var(--t-on-tertiary-container);
-  font-variation-settings: "wght" 600;
-}
-/* posted links take the primary role, as they do in the theme */
-.msg .lnk { color: var(--t-primary); word-break: break-all; }
-.msg code {
-  padding: 2px 6px;
-  border-radius: var(--t-radius-code);
-  background: hsl(var(--t-hue) 60% 90% / 0.08);
-  color: var(--t-primary);
-  font-size: 13px;
-}
-.reacts { display: flex; gap: 6px; margin-top: 8px; }
-.reacts span {
-  display: inline-flex;
-  gap: 5px;
-  padding: 2px 9px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-surface-3);
-  color: var(--t-text-mid);
-  font-size: 12px;
-}
-/* your own reaction reads as primary-container, same as in the theme */
-.reacts .me { background: var(--t-primary-container); color: var(--t-on-primary-container); }
-
-/* Embed: surface-2 card with a primary-container spine, mirroring the theme's
-   rule for embedFull. It was the one message-level feature the preview never
-   showed. */
-.embed {
-  margin-top: 8px;
-  max-width: 320px;
-  padding: 10px 12px;
-  border-left: 3px solid var(--t-primary-container);
-  border-radius: var(--t-radius-card);
-  background: var(--t-surface-2);
-  line-height: 1.35;
-}
-.embed .e-author { display: block; font-size: 11px; color: var(--t-text-low); }
-.embed .e-title {
-  display: block;
-  margin-top: 2px;
-  font-variation-settings: "wght" 650;
-  color: var(--t-primary);
-}
-.embed .e-desc { display: block; margin-top: 2px; font-size: 13px; color: var(--t-text-mid); }
-
-/* Date divider. Discord's is a hairline with the day sitting on it. */
-.day {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 11px;
-  font-variation-settings: "wght" 650;
-  color: var(--t-text-low);
-}
-.day::before, .day::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
-
-.composer {
-  margin: 4px 16px 16px;
-  padding: 12px 16px;
-  border-radius: var(--t-radius-container);
-  background: var(--t-surface-3);
-  color: var(--t-text-low);
-}
-
-/* member list (tier 2) */
-.members {
-  flex: 0 0 200px;
-  padding-top: 12px;
-  background: var(--t-surface-2);
-  border-radius: 0 var(--t-radius-container) var(--t-radius-container) 0;
-}
-.members ul { margin: 0; padding: 0; list-style: none; }
-.members .cat { padding-left: 20px; }
-.mem {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 2px 8px;
-  padding: 5px 8px;
-  border-radius: var(--t-radius-pill);
-  color: var(--t-text-mid);
-  font-size: 13px;
-}
-.mem .av { width: 28px; height: 28px; font-size: 11px; }
-.mem.on { background: var(--t-surface-3); color: var(--t-text-high); }
-.mem.off { opacity: 0.45; }
 
 /* ---------- hue control ----------
    The Material 3 Expressive slider: a thick two-tone track, a bar handle rather
@@ -873,36 +667,7 @@ a:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 3px; }
 footer { padding-top: 28px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--t-text-low); }
 footer a { color: var(--t-text-mid); }
 
-/* ---------- narrower viewports ----------
-   The preview drops panes the way Discord itself does, so whatever stays keeps
-   its real proportions instead of being scaled down into a blur. */
-@media (max-width: 1000px) {
-  .members { display: none; }
-  .chat { border-radius: 0 var(--t-radius-container) var(--t-radius-container) 0; }
-}
-@media (max-width: 760px) {
-  .guilds { display: none; }
-  /* the rail's 68px go back to the column, not to the sidebar */
-  .left { flex-basis: 232px; }
-}
-/* Below this the two remaining panes leave the chat too narrow to read a
-   sentence in, so they stack instead: the sidebar keeps the selected-channel
-   pill, the chat keeps the messages, and both get the full width. */
-@media (max-width: 620px) {
-  .app { flex-direction: column; }
-  /* stacked: the basis would now be a height, so hand the sizing back */
-  .left { flex: 0 0 auto; }
-  .side { border-radius: var(--t-radius-container) var(--t-radius-container) 0 0; }
-  .side ul { flex: 0 0 auto; }
-  /* the account panel repeats what the member list already showed */
-  .panel { display: none; }
-  .chat {
-    border-radius: 0 0 var(--t-radius-container) var(--t-radius-container);
-  }
-}
-@media (max-width: 420px) {
-  .app { font-size: 13px; }
-}
+/* ---------- narrower viewports ---------- */
 @media (max-width: 720px) {
   .hue {
     grid-template-columns: auto 1fr;
@@ -936,74 +701,112 @@ footer a { color: var(--t-text-mid); }
 
   <div>
     <div class="window">
-      <div class="app" role="img" aria-label="A Discord window in the ${esc(v.themeName)} theme: surfaces tinted in the seed hue, the selected channel as a pill in the primary container colour, categories in secondary, and mentions and unread markers in tertiary.">
-        <div class="left" aria-hidden="true">
-          <div class="left-top">
-            <div class="guilds">
-              <span class="g home">${ICON_DISCORD}</span>
-              <span class="sep"></span>
-              <span class="g on">LY</span>
-              <span class="g">DV<span class="badge">3</span></span>
-              <span class="g">VC</span>
-              <span class="g">AE</span>
+      <!-- The preview is a declarative shadow root carrying the compiled theme
+           itself, so what you see below is painted by the same stylesheet the
+           install URL serves - hover states and springs included. The shadow
+           boundary is what makes that safe: the theme's :root, html and body
+           rules simply do not match inside a shadow tree, so they cannot reach
+           the page, while --t-hue still inherits in and retunes it. -->
+      <div class="preview" role="img" aria-label="A Discord window painted by the ${esc(v.themeName)} theme itself: surfaces tinted in the seed hue, the selected channel as a pill in the primary container colour, categories in secondary, mentions and unread markers in tertiary.">
+        <template shadowrootmode="open">
+          <style>${previewBase}${themeCss}</style>
+          <div class="theme-dark visual-refresh t-root">
+            <div class="${k('app-mount')}">
+              <div class="${k('app-bg')}"></div>
+              <div class="t-app">
+
+                <div class="${k('sidebar')}">
+                  <div class="t-side-top">
+
+                    <nav class="${k('guilds-wrapper')}">
+                      ${guild(ICON_DISCORD)}
+                      <div class="t-guild-sep"></div>
+                      ${guild(`<img src="${GUILD_ICON}" alt="" decoding="async">`, { selected: true })}
+                      ${guild('DV', { mention: 3 })}
+                      ${guild('VC')}
+                      ${guild('AE')}
+                    </nav>
+
+                    <div class="t-side-main">
+                      <div class="${k('sidebar-header')}">LYGHTNING</div>
+                      <ul class="${k('sidebar-list')}">
+                      <li class="${k('cat-wrapper')}"><div class="${k('cat-name')}">Information</div></li>
+                      ${channel('announcements', 'ch-muted')}
+                      ${channel('hello-there', 'ch-muted')}
+                      <li class="${k('cat-wrapper')}"><div class="${k('cat-name')}">Text</div></li>
+                      ${channel('english-chat', 'ch-selected')}
+                      ${channel('german-chat', 'ch-unread')}
+                      ${channel('tech-support', '')}
+                      ${channel('memes', '')}
+                      <li class="${k('cat-wrapper')}"><div class="${k('cat-name')}">Voice</div></li>
+                      ${voiceChannel('Lounge')}
+                      ${voiceChannel('Music')}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <section class="${k('panel')}">
+                    ${avatar(CAST.aeycen)}
+                    <span class="t-panel-who">
+                      <span class="t-panel-name">${CAST.aeycen.name}</span>
+                      <span class="t-panel-status">Online</span>
+                    </span>
+                    <span class="t-panel-ctl">${ICON_MIC}${ICON_HEADSET}${ICON_GEAR}</span>
+                  </section>
+                </div>
+
+                <div class="${k('chat')}">
+                  <div class="${k('chat-header')}">${ICON_HASH}<span>english-chat</span></div>
+                  <div class="${k('chat-inner')}">
+                    <div class="${k('chat-scroller')}">
+                      <div class="${k('divider')}"><span class="${k('divider-content')}">Today</span></div>
+                      ${message(CAST.aeycen, '21:02', `vote: is <span class="${k('msg-mention')}">@Loan</span> allowed to pick the music again`)}
+                      ${message(
+                        CAST.trayved,
+                        '21:02',
+                        'no',
+                        `<div class="${k('reactions')}">
+                          <div class="${k('reaction', 'reaction-me')}">&#128077; <span class="${k('reaction-count')}">7</span></div>
+                          <div class="${k('reaction')}">&#128175; <span class="${k('reaction-count')}">4</span></div>
+                        </div>`
+                      )}
+                      ${message(CAST.gianiii, '21:02', 'no')}
+                      ${message(
+                        CAST.loan,
+                        '21:03',
+                        // the link is what makes the embed below it legitimate - Discord
+                        // unfurls a card because a URL was posted, not on its own
+                        'you have not even heard the playlist<br><a class="t-link" href="#" onclick="return false">open.spotify.com/playlist/2Kv9Rm4Tjq</a>',
+                        `<article class="${k('embed')}">
+                          <span class="t-embed-author">Playlist</span>
+                          <span class="t-embed-title">every song i know</span>
+                          <span class="t-embed-desc">1 track &middot; 3 hr 14 min</span>
+                        </article>`
+                      )}
+                      ${message(CAST.trayved, '21:03', 'we heard it. that is the entire problem.')}
+                    </div>
+                    <form class="${k('form')}">
+                      <div class="${k('textarea')}">Message #english-chat</div>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="${k('members')}">
+                  <ul>
+                    <li class="${k('member-group')}">Online &mdash; 3</li>
+                    ${member(CAST.aeycen)}
+                    ${member(CAST.trayved)}
+                    ${member(CAST.loan)}
+                    <li class="${k('member-group')}">Offline &mdash; 2</li>
+                    ${member(CAST.gianiii, true)}
+                    ${member(CAST.l8, true)}
+                  </ul>
+                </div>
+
+              </div>
             </div>
-
-            <div class="side">
-              <div class="head">LYGHTNING</div>
-              <ul>
-                <li class="cat">Information</li>
-                ${channel('announcements', 'muted')}
-                ${channel('hello-there', 'muted')}
-                <li class="cat">Text</li>
-                ${channel('english-chat', 'on')}
-                ${channel('german-chat', 'unread')}
-                ${channel('tech-support', '')}
-                ${channel('off-topic', '')}
-                <li class="cat">Voice</li>
-                <li class="ch">${ICON_VOICE}<span>Lounge</span></li>
-                <li class="ch">${ICON_VOICE}<span>Music</span></li>
-              </ul>
-            </div>
           </div>
-
-          <div class="panel">
-            ${avatar(CAST.aeycen)}
-            <span class="who"><span class="n">${CAST.aeycen.name}</span><span class="s">Online</span></span>
-            <span class="ctl">${ICON_MIC}${ICON_HEADSET}${ICON_GEAR}</span>
-          </div>
-        </div>
-
-        <div class="chat" aria-hidden="true">
-          <div class="head">${ICON_HASH}<span>english-chat</span></div>
-          <div class="log">
-            <div class="day">Today</div>
-            ${message(CAST.aeycen, '21:02', 'vote: is <span class="at">@Loan</span> allowed to pick the music again')}
-            ${message(CAST.trayved, '21:02', 'no', '<div class="reacts"><span class="me">&#128077; 7</span><span>&#128175; 4</span></div>')}
-            ${message(CAST.gianiii, '21:02', 'no')}
-            ${message(
-              CAST.loan,
-              '21:03',
-              // the link is what makes the embed below it legitimate - Discord
-              // unfurls a card because a URL was posted, not on its own
-              'you have not even heard the playlist<br><span class="lnk">open.spotify.com/playlist/2Kv9Rm4Tjq</span>',
-              '<div class="embed"><span class="e-author">Playlist</span><span class="e-title">every song i know</span><span class="e-desc">1 track &middot; 3 hr 14 min</span></div>'
-            )}
-            ${message(CAST.trayved, '21:03', 'we heard it. that is the entire problem.')}
-          </div>
-          <div class="composer">Message #english-chat</div>
-        </div>
-
-        <div class="members" aria-hidden="true">
-          <ul>
-            <li class="cat">Online &mdash; 3</li>
-            ${member(CAST.aeycen, 'on')}
-            ${member(CAST.trayved)}
-            ${member(CAST.loan)}
-            <li class="cat">Offline &mdash; 2</li>
-            ${member(CAST.gianiii, 'off')}
-            ${member(CAST.l8, 'off')}
-          </ul>
-        </div>
+        </template>
       </div>
     </div>
 
@@ -1202,7 +1005,13 @@ footer a { color: var(--t-text-mid); }
 await mkdir(new URL('../public/', import.meta.url), { recursive: true });
 await writeFile(OUT, html);
 for (const asset of ASSETS) {
-  await copyFile(new URL(`../assets/${asset}`, import.meta.url), new URL(`../public/${asset}`, import.meta.url));
+  const from = new URL(`../assets/${asset}`, import.meta.url);
+  const to = new URL(`../public/${asset}`, import.meta.url);
+  if (asset === GUILD_ICON) {
+    await writeFile(to, gifFirstFrame(await readFile(from)));
+  } else {
+    await copyFile(from, to);
+  }
 }
 
 console.log(`public/index.html written (${html.length} bytes) for ${v.themeName} v${v.version}`);

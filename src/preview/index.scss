@@ -1,0 +1,448 @@
+@use '../backend' as *;
+
+/* ============================================================
+   PREVIEW BASE
+   Stands in for Discord's own stylesheet inside the landing
+   page's preview, and for nothing else. It is never shipped to
+   users - the theme is a patch, and this is the thing it
+   patches.
+
+   Two jobs:
+
+   1. Export the hashed class names the generated markup needs
+      (section A). Sass resolves them through the same c() and
+      the same map as the theme, and fails the build on a path
+      that does not exist - so the preview cannot reference a
+      class the theme has never heard of.
+
+   2. Supply the layout the theme does not contain (section B).
+      src/main.scss section 3 is 242 skin declarations against
+      50 layout ones: it paints Discord, it does not build it.
+      Everything below is geometry only. Put no colour here -
+      colour belongs to the theme, and duplicating it here is
+      exactly the drift this file exists to remove.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   A. Class name export
+   Read back out of build/preview.css by tools/build-landing.mjs
+   and written into the markup. Add an entry here before using a
+   class in the preview markup, never the other way round.
+   ------------------------------------------------------------ */
+#t-preview-classnames {
+  --app-mount: '#{c(main appMount)}';
+  --app-bg: '#{c(main bg)}';
+
+  --guilds-wrapper: '#{c(guildList wrapper)}';
+  --guilds-item: '#{c(guildList listItem)}';
+  --guilds-icon-wrapper: '#{c(guildList iconWrapper)}';
+  --guilds-home: '#{c(guildList homeWrapper)}';
+  --guilds-icon: '#{c(guildList guildIcon)}';
+  --guilds-selected: '#{c(guildList selected)}';
+  --guilds-pill: '#{c(guildList pillItem)}';
+  --guilds-mention: '#{c(guildList mention mention)}';
+
+  --sidebar: '#{c(sidebar sidebar)}';
+  --sidebar-list: '#{c(sidebar list)}';
+  --sidebar-container: '#{c(sidebar server container)}';
+  --sidebar-header: '#{c(sidebar server header bannerContainer)}';
+  --cat-wrapper: '#{c(sidebar server category wrapper)}';
+  --cat-name: '#{c(sidebar server category name)}';
+  --ch-wrapper: '#{c(sidebar server channels wrapper)}';
+  --ch-link: '#{c(sidebar server channels link)}';
+  --ch-name: '#{c(sidebar server channels name)}';
+  --ch-icon: '#{c(sidebar server channels icon)}';
+  --ch-selected: '#{c(sidebar server channels selected)}';
+  --ch-unread: '#{c(sidebar server channels unread)}';
+  --ch-muted: '#{c(sidebar server channels muted)}';
+  --ch-unread-pill: '#{c(sidebar server channels unreadPill)}';
+  --panel: '#{c(sidebar panel panels)}';
+
+  --chat: '#{c(chat chat)}';
+  --chat-header: '#{c(chat chatHeaderBar)}';
+  --chat-inner: '#{c(chat chatContentInner)}';
+  --chat-scroller: '#{c(chat chatScrollerNSFW)}';
+  --msg: '#{c(chat message)}';
+  --msg-cozy: '#{c(chat cozy)}';
+  --msg-avatar: '#{c(chat chatAvatar)}';
+  --msg-username: '#{c(chat chatUsername)}';
+  --msg-timestamp: '#{c(chat timestamp)}';
+  --msg-markup: '#{c(chat markup)}';
+  --msg-mention: '#{c(chat mentionWrapper)}';
+  --divider: '#{c(chat divider divider)}';
+  --divider-content: '#{c(chat divider content)}';
+  --reactions: '#{c(chat reactions reactions)}';
+  --reaction: '#{c(chat reactions reaction)}';
+  --reaction-me: '#{c(chat reactions me)}';
+  --reaction-count: '#{c(chat reactions count)}';
+  --embed: '#{c(embeds embedFull)}';
+
+  --members: '#{c(memberList members)}';
+  --members-wrap: '#{c(memberList wrap)}';
+  --member: '#{c(memberList member)}';
+  --member-inner: '#{c(memberList memberInner)}';
+  --member-group: '#{c(memberList group)}';
+  --member-name: '#{c(memberList name)}';
+
+  --form: '#{c(chatForm form)}';
+  --textarea: '#{c(chatForm channelTextArea)}';
+}
+
+/* ------------------------------------------------------------
+   B. Layout only. No colour.
+   ------------------------------------------------------------ */
+
+/* The root of the shadow tree. Its children are laid out as the host's own
+   children, so the host being a flex column is what hands the height down.
+
+   Nothing below uses a percentage height, deliberately. The chain used to be
+   height:100% all the way down from a host sized by aspect-ratio, and Firefox
+   does not resolve a percentage height against an aspect-ratio-derived one - it
+   falls back to auto, the columns stop being bounded, and the last child of
+   each (the account panel, the composer) ends up outside its box. Flex sizing
+   resolves the same way in both engines. */
+.t-root {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* The theme's chat monogram is set in Anurati, which a visitor almost
+     certainly does not have, so it rendered in a fallback face that looked
+     nothing like the real thing. Emptying the token is how a user turns it off
+     too - a real setting, not an override of the theme's rule. */
+  --t-monogram: '';
+}
+
+#{c(main appMount)} {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* contains the theme's fixed-position background element, which would
+     otherwise escape the shadow root and cover the page - fixed positioning is
+     viewport-relative even inside a shadow tree unless an ancestor is a
+     containing block */
+  transform: translateZ(0);
+  font-family: var(--t-font-ui);
+  font-size: 14px;
+  line-height: 1.4;
+  /* The preview is a picture of an app, so dragging across it should not paint
+     channel names and timestamps blue the way selecting a page does. Message
+     bodies are the exception below - that is the one part a reader might
+     actually want to take with them. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+.t-app {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+/* --- server rail ---
+   No overflow clipping: the mention badge sits proud of its tile's corner, and
+   hiding overflow here cut it off against the channel list. */
+#{c(guildList wrapper)} {
+  flex: 0 0 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+#{c(guildList listItem)} {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+/* The pill sits flush against the rail's left edge. The 44px tile is centred in
+   the 68px rail, so that leaves the 8px gap Discord has between the two - at
+   left: 8px the pill was touching the icon. */
+#{c(guildList pillItem)} {
+  position: absolute;
+  left: 0;
+  width: 4px;
+  height: 28px;
+}
+/* childWrapper is the tile behind every guild, home button included - which is
+   why the theme's hover, :active and selected rules all name it. Hanging the
+   markup off guildIcon instead left every one of them unmatched. */
+#{c(guildList homeWrapper)} {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+#{c(guildList homeWrapper)} svg { width: 26px; height: 26px; }
+/* A server picture fills its tile; Discord crops rather than letterboxes.
+   The image rounds itself off with border-radius: inherit rather than being
+   clipped by the tile. Doing both left a hairline of the tile's background
+   showing past the image along the curve. inherit also follows the theme's
+   radius morph on hover, so nothing is lost. */
+#{c(guildList homeWrapper)} img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+/* the badge hangs off the tile's corner, so it anchors to the tile's box */
+#{c(guildList iconWrapper)} { position: relative; }
+/* Discord's badge geometry; the theme only recolours it */
+#{c(guildList mention mention)} {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  /* border-box, so min-width is the whole badge: a single digit lands at
+     exactly 18x18 and draws a circle, and only a second digit widens it into a
+     pill. With content-box the padding was added on top and it was never round. */
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+/* Discord's own separator between direct messages and the servers. It has no
+   entry in the class map, so the colour is taken from the variable the theme
+   maps for exactly this - a divider rule - rather than picked here. */
+.t-guild-sep {
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+/* --- channel sidebar ---
+   The sidebar element is the entire left column, rail included, and the account
+   panel is its last child. That is what puts the panel on the sidebar's own
+   painted background: as a sibling it sat on the app background instead, and
+   the strip of surface-0 showing behind it was visible as a band. Nothing here
+   names a colour - the fix is structural. */
+#{c(sidebar sidebar)} {
+  flex: 0 0 284px; /* 68 rail + 216 list, a touch wider than the 200 member list */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* rail and channel list side by side; the panel sits under both */
+.t-side-top { flex: 1 1 auto; min-height: 0; display: flex; }
+.t-side-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+#{c(sidebar server header bannerContainer)} {
+  flex: 0 0 auto;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-weight: 650;
+}
+#{c(sidebar list)} {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 8px;
+  list-style: none;
+}
+#{c(sidebar server category wrapper)} { padding: 14px 12px 4px; }
+#{c(sidebar server category name)} { font-size: 12px; }
+#{c(sidebar server channels wrapper)} { position: relative; }
+#{c(sidebar server channels link)} {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+}
+#{c(sidebar server channels icon)} { flex: 0 0 auto; width: 18px; height: 18px; }
+#{c(sidebar server channels unreadPill)} {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+  height: 8px;
+}
+
+/* --- account panel --- */
+#{c(sidebar panel panels)} {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+}
+.t-panel-who { flex: 1; min-width: 0; line-height: 1.2; }
+.t-panel-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.t-panel-status { display: block; font-size: 11px; }
+.t-panel-ctl { flex: 0 0 auto; display: flex; gap: 2px; }
+.t-panel-ctl span { width: 26px; height: 26px; display: grid; place-items: center; }
+.t-panel-ctl svg { width: 17px; height: 17px; }
+
+/* --- chat --- */
+#{c(chat chat)} {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#{c(chat chatHeaderBar)} {
+  flex: 0 0 auto;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  font-weight: 650;
+}
+#{c(chat chatHeaderBar)} svg { width: 18px; height: 18px; }
+/* chatContent holds the scrollback AND the composer - it is the element the
+   theme gives surface-1 to, so anything left outside it sits on the app
+   background instead and reads as a lighter band across the bottom. */
+#{c(chat chatContentInner)} {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Bottom-anchored, the way a scrollback sits when it is at the newest message.
+   Sized by flex rather than height:100% - a percentage height against a flex
+   parent resolves inconsistently, and when it failed the overflow landed at the
+   bottom and ate the last message instead of the oldest one. */
+#{c(chat chatScrollerNSFW)} {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 20px 16px 8px;
+  overflow: hidden;
+}
+#{c(chat message)} { display: flex; gap: 12px; }
+#{c(chat chatAvatar)} {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+}
+/* The plate behind someone's initials. This is one of the few colours that
+   belongs here: Discord draws a default avatar for anyone without a picture and
+   the theme never touches avatar backgrounds, so it is not a decision being
+   duplicated. --av offsets it from the seed hue, so it still retunes. */
+#{c(chat chatAvatar)}:not(:has(img)) {
+  background: hsl(calc(var(--t-hue) + var(--av, 0)) 32% 40%);
+  color: var(--t-text-high);
+}
+#{c(chat chatAvatar)} img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.t-msg-body { min-width: 0; }
+.t-msg-head { display: flex; align-items: baseline; gap: 8px; }
+#{c(chat chatUsername)} { font-weight: 650; }
+#{c(chat markup)} {
+  margin: 2px 0 0;
+  line-height: 1.45;
+  -webkit-user-select: text;
+  user-select: text;
+}
+#{c(chat mentionWrapper)} { font-weight: 600; }
+#{c(chat botTag)} {
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+/* the date divider is styled entirely by the theme, rules included */
+#{c(chat reactions reactions)} { display: flex; gap: 6px; margin-top: 8px; }
+/* The transparent resting border is Discord's, and the theme depends on it: it
+   only recolours the border on hover and transitions border-color, so with no
+   border at rest the hover grew the pill by 2px and pushed the whole scrollback
+   up. */
+#{c(chat reactions reaction)} {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border: 1px solid transparent;
+  font-size: 12px;
+}
+#{c(embeds embedFull)} {
+  display: block;
+  margin-top: 8px;
+  max-width: 320px;
+  padding: 10px 12px;
+  line-height: 1.35;
+}
+.t-embed-author { display: block; font-size: 11px; }
+.t-embed-title { display: block; margin-top: 2px; font-weight: 650; }
+.t-embed-desc { display: block; margin-top: 2px; font-size: 13px; }
+/* Discord colours links from --text-link, which the theme maps onto the
+   primary role - so this stays theme-driven rather than picked here. */
+.t-link { color: var(--text-link); text-decoration: none; word-break: break-all; }
+
+/* --- composer --- */
+#{c(chatForm form)} { flex: 0 0 auto; margin: 4px 16px 16px; }
+#{c(chatForm channelTextArea)} { padding: 12px 16px; }
+
+/* --- member list --- */
+#{c(memberList members)} {
+  flex: 0 0 200px;
+  padding-top: 12px;
+  overflow: hidden;
+}
+#{c(memberList members)} ul { margin: 0; padding: 0; list-style: none; }
+#{c(memberList group)} { padding: 14px 20px 4px; font-size: 12px; }
+#{c(memberList member)} { margin: 2px 8px; }
+#{c(memberList memberInner)} {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+#{c(memberList memberInner)} #{c(chat chatAvatar)} { width: 28px; height: 28px; font-size: 11px; }
+.t-member-off { opacity: 0.45; }
+
+/* ------------------------------------------------------------
+   C. Narrower viewports
+   Media queries inside a shadow root still test the viewport, so
+   the preview drops panes here rather than in the page's own
+   stylesheet - next to the layout they alter.
+   ------------------------------------------------------------ */
+@media (max-width: 1000px) {
+  #{c(memberList members)} { display: none; }
+}
+@media (max-width: 760px) {
+  #{c(guildList wrapper)} { display: none; }
+  #{c(sidebar sidebar)} { flex-basis: 216px; }
+}
+/* Below this the two remaining panes leave the chat too narrow to read a
+   sentence in, so they stack: the sidebar keeps the selected-channel pill, the
+   chat keeps the messages, and both get the full width. */
+@media (max-width: 620px) {
+  .t-app { flex-direction: column; }
+  #{c(sidebar sidebar)} { flex: 0 0 auto; }
+  #{c(sidebar list)} { flex: 0 0 auto; }
+  /* the account panel repeats what the member list already showed */
+  #{c(sidebar panel panels)} { display: none; }
+}

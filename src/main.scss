@@ -45,8 +45,8 @@
     /* ---- Monogram (optional) ----
        Your name as a decorative element in the chat background. Leave empty to hide.
        Anurati must be installed locally; otherwise Syncopate/Michroma is used. */
-    --t-monogram: "aeycen"; /* e.g. your username – in quotes */
-    --t-monogram-font: "Anurati", "Syncopate", "Michroma", sans-serif;
+    --t-monogram: ""; /* e.g. your username – in quotes */
+    --t-monogram-font: "Anurati", "Syncopate", "Michroma", sans-serif; /* Anurati font needs to be installed locally on your PC */
     --t-monogram-size: 96px;
     --t-monogram-opacity: 0.07;                 /* 0.04 very subtle, 0.12 clearly visible */
     --t-monogram-spacing: 0.25em;
@@ -1779,7 +1779,23 @@ code {
     opacity: 1;
 }
 
-/* Date divider as a pill */
+/* Date divider: a pill label sitting between two rules.
+   The rules are drawn here rather than left to Discord's own, which sit on the
+   content and would end up inside the pill. Discord's are switched off below. */
+#{c(chat divider divider)}:not(#{c(chat divider isUnread)}) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border: none;
+}
+#{c(chat divider divider)}:not(#{c(chat divider isUnread)})::before,
+#{c(chat divider divider)}:not(#{c(chat divider isUnread)})::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--border-subtle);
+}
 #{c(chat divider divider)}:not(#{c(chat divider isUnread)}) #{c(chat divider content)} {
     background: var(--t-surface-3);
     color: var(--t-text-mid);
@@ -1791,11 +1807,6 @@ code {
 #{c(chat divider divider)}:not(#{c(chat divider isUnread)}) #{c(chat divider content)}::before,
 #{c(chat divider divider)}:not(#{c(chat divider isUnread)}) #{c(chat divider content)}::after {
     display: none;
-}
-#{c(chat divider divider)}:not(#{c(chat divider isUnread)}) {
-    justify-content: center;
-    display: flex;
-    border: none;
 }
 /* Unread divider stays a line in tertiary */
 #{c(chat divider isUnread)} #{c(chat divider content)} {
