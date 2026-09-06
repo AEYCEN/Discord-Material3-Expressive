@@ -35,8 +35,8 @@
   /* ---- Monogram (optional) ----
      Your name as a decorative element in the chat background. Leave empty to hide.
      Anurati must be installed locally; otherwise Syncopate/Michroma is used. */
-  --t-monogram: "aeycen"; /* e.g. your username – in quotes */
-  --t-monogram-font: "Anurati", "Syncopate", "Michroma", sans-serif;
+  --t-monogram: ""; /* e.g. your username – in quotes */
+  --t-monogram-font: "Anurati", "Syncopate", "Michroma", sans-serif; /* Anurati font needs to be installed locally on your PC */
   --t-monogram-size: 96px;
   --t-monogram-opacity: 0.07; /* 0.04 very subtle, 0.12 clearly visible */
   --t-monogram-spacing: 0.25em;
@@ -194,9 +194,8 @@ h1 {
 .lede { max-width: 50ch; font-size: clamp(17px, 2vw, 19px); line-height: 1.55; }
 
 /* ---------- preview window ----------
-   Not a screenshot: the same tokens the theme assigns onto Discord's variables,
-   assigned onto a stand-in DOM. Every rule below mirrors one in src/main.scss
-   section 3, so the two cannot show different things. */
+   Everything inside the window is a shadow root holding the compiled theme, so
+   the only preview rules left out here are the frame and how big it is. */
 /* surface-0 is the window frame in the theme, and it is also this page's
    ground, so the bezel needs an outline to exist at all. A hairline does the
    job a drop shadow was doing before, without the soft wash of colour.
@@ -214,332 +213,19 @@ h1 {
    the one that sets the joke up. Past 1180px the page is at its 1120px cap, so
    the preview's width stops changing and 16:9 resolves to one constant height
    that the content is known to fit. */
-.app {
+.preview {
+  /* a flex column, because the shadow root's children lay out as this element's
+     own children - this is what gives them a bounded height without any
+     percentage in the chain */
   display: flex;
+  flex-direction: column;
   min-height: 400px;
   overflow: hidden;
   border-radius: var(--t-radius-container);
-  font-size: 14px;
 }
 @media (min-width: 1180px) {
-  .app { aspect-ratio: 16 / 9; min-height: 0; }
+  .preview { aspect-ratio: 16 / 9; min-height: 0; }
 }
-.app .i { width: 18px; height: 18px; flex: 0 0 auto; }
-
-/* The rail and the sidebar share a column so the account panel can sit under
-   both, the way it does in Discord - it is one panel spanning the whole left
-   side, not something tucked inside the channel list.
-
-   The 300px is written out (68 rail + 232 list) rather than left to an auto
-   flex basis. An intrinsic width here means the browser has to derive it from a
-   nested flex column, and Firefox resolved that to about the panel's own width:
-   the rail and the list then overflowed their column, .chat started underneath
-   them, and the selected channel pill painted across the messages because .ch
-   is positioned and .chat is not. The sidebar fills whatever the rail leaves,
-   so the two numbers cannot drift apart. */
-.left {
-  flex: 0 0 300px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--t-surface-2);
-}
-.left-top { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
-
-/* server rail (tier 1) */
-.guilds {
-  flex: 0 0 68px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  background: var(--t-surface-1);
-}
-.guilds .g {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--t-radius-card);
-  background: var(--t-surface-3);
-  color: var(--t-text-mid);
-  font-size: 15px;
-  font-variation-settings: "wght" 700;
-}
-.guilds .g.on { background: var(--t-primary); color: var(--t-on-primary); }
-/* selection pill, left of the icon */
-.guilds .g.on::before {
-  content: "";
-  position: absolute;
-  left: -12px;
-  width: 4px;
-  height: 28px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-primary);
-}
-.guilds .g .badge {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-tertiary);
-  color: var(--t-on-tertiary);
-  font-size: 11px;
-  line-height: 18px;
-  font-variation-settings: "wght" 700;
-}
-/* The separator sits under the home button only. It divides direct messages
-   from the servers - the selected server is marked by the pill beside it, not
-   by a rule above it. */
-.guilds .sep { width: 22px; height: 2px; border-radius: 2px; background: var(--rule); }
-.guilds .g.home { background: var(--t-primary); color: var(--t-on-primary); }
-.guilds .g.home svg { width: 26px; height: 26px; }
-
-/* channel sidebar (tier 2) - takes whatever the rail leaves of .left */
-.side {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--t-surface-2);
-  border-radius: var(--t-radius-container) 0 0 0;
-}
-.side .head {
-  padding: 0 16px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  font-variation-settings: "wght" 650;
-  color: var(--t-text-high);
-}
-.side ul { margin: 0; padding: 0 0 8px; list-style: none; flex: 1; min-height: 0; }
-
-/* categories: secondary tone, no uppercase shouting */
-.cat { padding: 14px 12px 4px; font-size: 12px; font-variation-settings: "wght" 600; color: var(--t-secondary); }
-
-/* channel rows are pills; the selected one is the theme's signature element */
-.ch {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 1px 8px 1px 6px;
-  padding: 6px 10px;
-  border-radius: var(--t-radius-pill);
-  color: var(--t-text-mid);
-}
-.ch .i { color: var(--t-text-low); }
-.ch.on { background: var(--t-primary-container); }
-.ch.on, .ch.on .i { color: var(--t-on-primary-container); }
-.ch.unread { color: var(--t-text-high); font-variation-settings: "wght" 650; }
-.ch.unread .i { color: var(--t-text-high); }
-.ch.unread::before {
-  content: "";
-  position: absolute;
-  left: -6px;
-  top: 50%;
-  translate: 0 -50%;
-  width: 4px;
-  height: 8px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-tertiary);
-}
-.ch.muted { color: var(--t-text-low); opacity: 0.7; }
-
-/* Account panel - a child of .left, so it spans the rail and the sidebar */
-.panel {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 8px 8px;
-  padding: 6px 8px;
-  border-radius: var(--t-radius-card);
-  background: var(--t-surface-3);
-}
-.panel .av { width: 32px; height: 32px; }
-.panel .who { flex: 1; min-width: 0; line-height: 1.2; }
-.panel .n {
-  display: block;
-  font-size: 13px;
-  font-variation-settings: "wght" 650;
-  color: var(--t-text-high);
-  /* a long name must not push the controls out of the panel */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.panel .s { display: block; font-size: 11px; color: var(--t-text-low); }
-/* mic, headset and settings, always visible - Discord never hides these */
-.panel .ctl { flex: 0 0 auto; display: flex; gap: 2px; color: var(--t-text-mid); }
-.panel .ctl span {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--t-radius-code);
-}
-.panel .ctl svg { width: 17px; height: 17px; }
-
-/* chat (tier 1) */
-.chat { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--t-surface-1); }
-.chat .head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 48px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--rule);
-  color: var(--t-text-high);
-  font-variation-settings: "wght" 650;
-}
-.chat .head .i { color: var(--t-text-low); }
-
-/* The theme's chat monogram is not drawn here. It is set in Anurati, which the
-   visitor almost certainly does not have installed, so it rendered in a fallback
-   face that looked nothing like the real thing. */
-.log {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 14px;
-  padding: 20px 16px 8px;
-}
-.msg { display: flex; gap: 12px; }
-.av {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: var(--t-radius-pill);
-  /* the plate is only for initials, and is an offset from the seed hue so those
-     retune with everything else. :has() drops it behind a picture - all of them
-     are transparent artwork, which a coloured disc sitting behind would turn
-     into a badge none of them are. */
-  background: hsl(calc(var(--t-hue) + var(--av, 0)) 32% 40%);
-  color: var(--t-text-high);
-  font-size: 13px;
-  font-variation-settings: "wght" 700;
-}
-.av:has(img) { background: none; }
-/* contain, not cover: these are marks with their own margins, and one of them
-   is wider than it is tall - cropping to a square would cut its edges off */
-.av img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.msg .body { min-width: 0; }
-.msg .line { display: flex; align-items: baseline; gap: 8px; }
-.msg .who { font-variation-settings: "wght" 650; color: var(--t-text-high); }
-.msg time { font-size: 11px; color: var(--t-text-low); }
-.msg p { margin: 2px 0 0; line-height: 1.45; }
-.tag {
-  padding: 1px 5px;
-  border-radius: var(--t-radius-code);
-  background: var(--t-surface-4);
-  color: var(--t-text-mid);
-  font-size: 10px;
-  font-variation-settings: "wght" 650;
-  letter-spacing: 0.02em;
-}
-.at {
-  padding: 0 6px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-tertiary-container);
-  color: var(--t-on-tertiary-container);
-  font-variation-settings: "wght" 600;
-}
-/* posted links take the primary role, as they do in the theme */
-.msg .lnk { color: var(--t-primary); word-break: break-all; }
-.msg code {
-  padding: 2px 6px;
-  border-radius: var(--t-radius-code);
-  background: hsl(var(--t-hue) 60% 90% / 0.08);
-  color: var(--t-primary);
-  font-size: 13px;
-}
-.reacts { display: flex; gap: 6px; margin-top: 8px; }
-.reacts span {
-  display: inline-flex;
-  gap: 5px;
-  padding: 2px 9px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-surface-3);
-  color: var(--t-text-mid);
-  font-size: 12px;
-}
-/* your own reaction reads as primary-container, same as in the theme */
-.reacts .me { background: var(--t-primary-container); color: var(--t-on-primary-container); }
-
-/* Embed: surface-2 card with a primary-container spine, mirroring the theme's
-   rule for embedFull. It was the one message-level feature the preview never
-   showed. */
-.embed {
-  margin-top: 8px;
-  max-width: 320px;
-  padding: 10px 12px;
-  border-left: 3px solid var(--t-primary-container);
-  border-radius: var(--t-radius-card);
-  background: var(--t-surface-2);
-  line-height: 1.35;
-}
-.embed .e-author { display: block; font-size: 11px; color: var(--t-text-low); }
-.embed .e-title {
-  display: block;
-  margin-top: 2px;
-  font-variation-settings: "wght" 650;
-  color: var(--t-primary);
-}
-.embed .e-desc { display: block; margin-top: 2px; font-size: 13px; color: var(--t-text-mid); }
-
-/* Date divider. Discord's is a hairline with the day sitting on it. */
-.day {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 11px;
-  font-variation-settings: "wght" 650;
-  color: var(--t-text-low);
-}
-.day::before, .day::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
-
-.composer {
-  margin: 4px 16px 16px;
-  padding: 12px 16px;
-  border-radius: var(--t-radius-container);
-  background: var(--t-surface-3);
-  color: var(--t-text-low);
-}
-
-/* member list (tier 2) */
-.members {
-  flex: 0 0 200px;
-  padding-top: 12px;
-  background: var(--t-surface-2);
-  border-radius: 0 var(--t-radius-container) var(--t-radius-container) 0;
-}
-.members ul { margin: 0; padding: 0; list-style: none; }
-.members .cat { padding-left: 20px; }
-.mem {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 2px 8px;
-  padding: 5px 8px;
-  border-radius: var(--t-radius-pill);
-  color: var(--t-text-mid);
-  font-size: 13px;
-}
-.mem .av { width: 28px; height: 28px; font-size: 11px; }
-.mem.on { background: var(--t-surface-3); color: var(--t-text-high); }
-.mem.off { opacity: 0.45; }
 
 /* ---------- hue control ----------
    The Material 3 Expressive slider: a thick two-tone track, a bar handle rather
@@ -821,36 +507,7 @@ a:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 3px; }
 footer { padding-top: 28px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--t-text-low); }
 footer a { color: var(--t-text-mid); }
 
-/* ---------- narrower viewports ----------
-   The preview drops panes the way Discord itself does, so whatever stays keeps
-   its real proportions instead of being scaled down into a blur. */
-@media (max-width: 1000px) {
-  .members { display: none; }
-  .chat { border-radius: 0 var(--t-radius-container) var(--t-radius-container) 0; }
-}
-@media (max-width: 760px) {
-  .guilds { display: none; }
-  /* the rail's 68px go back to the column, not to the sidebar */
-  .left { flex-basis: 232px; }
-}
-/* Below this the two remaining panes leave the chat too narrow to read a
-   sentence in, so they stack instead: the sidebar keeps the selected-channel
-   pill, the chat keeps the messages, and both get the full width. */
-@media (max-width: 620px) {
-  .app { flex-direction: column; }
-  /* stacked: the basis would now be a height, so hand the sizing back */
-  .left { flex: 0 0 auto; }
-  .side { border-radius: var(--t-radius-container) var(--t-radius-container) 0 0; }
-  .side ul { flex: 0 0 auto; }
-  /* the account panel repeats what the member list already showed */
-  .panel { display: none; }
-  .chat {
-    border-radius: 0 0 var(--t-radius-container) var(--t-radius-container);
-  }
-}
-@media (max-width: 420px) {
-  .app { font-size: 13px; }
-}
+/* ---------- narrower viewports ---------- */
 @media (max-width: 720px) {
   .hue {
     grid-template-columns: auto 1fr;
@@ -884,102 +541,826 @@ footer a { color: var(--t-text-mid); }
 
   <div>
     <div class="window">
-      <div class="app" role="img" aria-label="A Discord window in the Material 3 Expressive theme: surfaces tinted in the seed hue, the selected channel as a pill in the primary container colour, categories in secondary, and mentions and unread markers in tertiary.">
-        <div class="left" aria-hidden="true">
-          <div class="left-top">
-            <div class="guilds">
-              <span class="g home"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.63 5.65a16.2 16.2 0 0 0-4.07-1.26.06.06 0 0 0-.07.03c-.17.31-.37.72-.51 1.04a15 15 0 0 0-4.49 0 10.3 10.3 0 0 0-.52-1.04.06.06 0 0 0-.06-.03c-1.42.24-2.79.67-4.07 1.26a.06.06 0 0 0-.03.02C2.9 9.52 2.2 13.28 2.55 17a.07.07 0 0 0 .02.05 16.3 16.3 0 0 0 4.92 2.49.06.06 0 0 0 .07-.02c.38-.52.72-1.06.1-1.63a.06.06 0 0 0-.04-.09 10.7 10.7 0 0 1-1.53-.73.06.06 0 0 1 0-.1l.3-.24a.06.06 0 0 1 .07 0 11.6 11.6 0 0 0 9.86 0 .06.06 0 0 1 .07 0l.3.24a.06.06 0 0 1 0 .1c-.49.29-1 .53-1.53.73a.06.06 0 0 0-.04.09c.3.57.64 1.11 1 1.63a.06.06 0 0 0 .07.02 16.2 16.2 0 0 0 4.93-2.49.06.06 0 0 0 .02-.04c.42-4.3-.69-8.02-2.92-11.34a.05.05 0 0 0-.02-.02ZM8.68 14.735c-.97 0-1.77-.89-1.77-1.98s.78-1.99 1.77-1.99c1 0 1.79.9 1.77 1.99 0 1.09-.78 1.98-1.77 1.98Zm6.53 0c-.97 0-1.77-.89-1.77-1.98s.78-1.99 1.77-1.99c1 0 1.79.9 1.77 1.99 0 1.09-.77 1.98-1.77 1.98Z"/></svg></span>
-              <span class="sep"></span>
-              <span class="g on">LY</span>
-              <span class="g">DV<span class="badge">3</span></span>
-              <span class="g">VC</span>
-              <span class="g">AE</span>
-            </div>
+      <!-- The preview is a declarative shadow root carrying the compiled theme
+           itself, so what you see below is painted by the same stylesheet the
+           install URL serves - hover states and springs included. The shadow
+           boundary is what makes that safe: the theme's :root, html and body
+           rules simply do not match inside a shadow tree, so they cannot reach
+           the page, while --t-hue still inherits in and retunes it. -->
+      <div class="preview" role="img" aria-label="A Discord window painted by the Material 3 Expressive theme itself: surfaces tinted in the seed hue, the selected channel as a pill in the primary container colour, categories in secondary, mentions and unread markers in tertiary.">
+        <template shadowrootmode="open">
+          <style>/* ============================================================
+   PREVIEW BASE
+   Stands in for Discord's own stylesheet inside the landing
+   page's preview, and for nothing else. It is never shipped to
+   users - the theme is a patch, and this is the thing it
+   patches.
 
-            <div class="side">
-              <div class="head">LYGHTNING</div>
-              <ul>
-                <li class="cat">Information</li>
-                <li class="ch muted"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>announcements</span></li>
-                <li class="ch muted"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>hello-there</span></li>
-                <li class="cat">Text</li>
-                <li class="ch on"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>english-chat</span></li>
-                <li class="ch unread"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>german-chat</span></li>
-                <li class="ch "><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>tech-support</span></li>
-                <li class="ch "><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>off-topic</span></li>
-                <li class="cat">Voice</li>
-                <li class="ch"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 4.2 6.8 8.3H3.4a1 1 0 0 0-1 1v5.4a1 1 0 0 0 1 1h3.4l4.7 4.1a.8.8 0 0 0 1.3-.6V4.8a.8.8 0 0 0-1.3-.6Zm4.6 3.1a1 1 0 0 0-1 1.7 4 4 0 0 1 0 6 1 1 0 0 0 1 1.7 6 6 0 0 0 0-9.4Z"/></svg><span>Lounge</span></li>
-                <li class="ch"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 4.2 6.8 8.3H3.4a1 1 0 0 0-1 1v5.4a1 1 0 0 0 1 1h3.4l4.7 4.1a.8.8 0 0 0 1.3-.6V4.8a.8.8 0 0 0-1.3-.6Zm4.6 3.1a1 1 0 0 0-1 1.7 4 4 0 0 1 0 6 1 1 0 0 0 1 1.7 6 6 0 0 0 0-9.4Z"/></svg><span>Music</span></li>
-              </ul>
+   Two jobs:
+
+   1. Export the hashed class names the generated markup needs
+      (section A). Sass resolves them through the same c() and
+      the same map as the theme, and fails the build on a path
+      that does not exist - so the preview cannot reference a
+      class the theme has never heard of.
+
+   2. Supply the layout the theme does not contain (section B).
+      src/main.scss section 3 is 242 skin declarations against
+      50 layout ones: it paints Discord, it does not build it.
+      Everything below is geometry only. Put no colour here -
+      colour belongs to the theme, and duplicating it here is
+      exactly the drift this file exists to remove.
+   ============================================================ */
+/* ------------------------------------------------------------
+   A. Class name export
+   Read back out of build/preview.css by tools/build-landing.mjs
+   and written into the markup. Add an entry here before using a
+   class in the preview markup, never the other way round.
+   ------------------------------------------------------------ */
+
+/* ------------------------------------------------------------
+   B. Layout only. No colour.
+   ------------------------------------------------------------ */
+/* The root of the shadow tree. Its children are laid out as the host's own
+   children, so the host being a flex column is what hands the height down.
+
+   Nothing below uses a percentage height, deliberately. The chain used to be
+   height:100% all the way down from a host sized by aspect-ratio, and Firefox
+   does not resolve a percentage height against an aspect-ratio-derived one - it
+   falls back to auto, the columns stop being bounded, and the last child of
+   each (the account panel, the composer) ends up outside its box. Flex sizing
+   resolves the same way in both engines. */
+.t-root {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* The theme's chat monogram is set in Anurati, which a visitor almost
+     certainly does not have, so it rendered in a fallback face that looked
+     nothing like the real thing. Emptying the token is how a user turns it off
+     too - a real setting, not an override of the theme's rule. */
+  --t-monogram: '';
+}
+
+.appMount__51fd7 {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* contains the theme's fixed-position background element, which would
+     otherwise escape the shadow root and cover the page - fixed positioning is
+     viewport-relative even inside a shadow tree unless an ancestor is a
+     containing block */
+  transform: translateZ(0);
+  font-family: var(--t-font-ui);
+  font-size: 14px;
+  line-height: 1.4;
+  /* The preview is a picture of an app, so dragging across it should not paint
+     channel names and timestamps blue the way selecting a page does. Message
+     bodies are the exception below - that is the one part a reader might
+     actually want to take with them. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.t-app {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+/* --- server rail ---
+   No overflow clipping: the mention badge sits proud of its tile's corner, and
+   hiding overflow here cut it off against the channel list. */
+.wrapper_ef3116 {
+  flex: 0 0 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.listItem__650eb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* The pill sits flush against the rail's left edge. The 44px tile is centred in
+   the 68px rail, so that leaves the 8px gap Discord has between the two - at
+   left: 8px the pill was touching the icon. */
+.item__58105 {
+  position: absolute;
+  left: 0;
+  width: 4px;
+  height: 28px;
+}
+
+/* childWrapper is the tile behind every guild, home button included - which is
+   why the theme's hover, :active and selected rules all name it. Hanging the
+   markup off guildIcon instead left every one of them unmatched. */
+.childWrapper__6e9f8 {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.childWrapper__6e9f8 svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* A server picture fills its tile; Discord crops rather than letterboxes.
+   The image rounds itself off with border-radius: inherit rather than being
+   clipped by the tile. Doing both left a hairline of the tile's background
+   showing past the image along the curve. inherit also follows the theme's
+   radius morph on hover, so nothing is lost. */
+.childWrapper__6e9f8 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
+/* the badge hangs off the tile's corner, so it anchors to the tile's box */
+.wrapper__6e9f8 {
+  position: relative;
+}
+
+/* Discord's badge geometry; the theme only recolours it */
+.mention__3b95d {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  /* border-box, so min-width is the whole badge: a single digit lands at
+     exactly 18x18 and draws a circle, and only a second digit widens it into a
+     pill. With content-box the padding was added on top and it was never round. */
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Discord's own separator between direct messages and the servers. It has no
+   entry in the class map, so the colour is taken from the variable the theme
+   maps for exactly this - a divider rule - rather than picked here. */
+.t-guild-sep {
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+/* --- channel sidebar ---
+   The sidebar element is the entire left column, rail included, and the account
+   panel is its last child. That is what puts the panel on the sidebar's own
+   painted background: as a sibling it sat on the app background instead, and
+   the strip of surface-0 showing behind it was visible as a band. Nothing here
+   names a colour - the fix is structural. */
+.sidebar__5e434 {
+  flex: 0 0 284px; /* 68 rail + 216 list, a touch wider than the 200 member list */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* rail and channel list side by side; the panel sits under both */
+.t-side-top {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.t-side-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.animatedContainer_f37cb1 {
+  flex: 0 0 auto;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-weight: 650;
+}
+
+.sidebarList__5e434 {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 8px;
+  list-style: none;
+}
+
+.wrapper__29444 {
+  padding: 14px 12px 4px;
+}
+
+.name__29444 {
+  font-size: 12px;
+}
+
+.wrapper__2ea32 {
+  position: relative;
+}
+
+.link__2ea32 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+}
+
+.icon__2ea32 {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+.unread__2ea32 {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+  height: 8px;
+}
+
+/* --- account panel --- */
+.panels__5e434 {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+.t-panel-who {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.t-panel-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.t-panel-status {
+  display: block;
+  font-size: 11px;
+}
+
+.t-panel-ctl {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+}
+
+.t-panel-ctl span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+}
+
+.t-panel-ctl svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* --- chat --- */
+.chat_f75fb0 {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chatHeaderBar_dc83f5 {
+  flex: 0 0 auto;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  font-weight: 650;
+}
+
+.chatHeaderBar_dc83f5 svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* chatContent holds the scrollback AND the composer - it is the element the
+   theme gives surface-1 to, so anything left outside it sits on the app
+   background instead and reads as a lighter band across the bottom. */
+.chatContent_f75fb0 {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Bottom-anchored, the way a scrollback sits when it is at the newest message.
+   Sized by flex rather than height:100% - a percentage height against a flex
+   parent resolves inconsistently, and when it failed the overflow landed at the
+   bottom and ate the last message instead of the oldest one. */
+.scroller_f35c3c {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 20px 16px 8px;
+  overflow: hidden;
+}
+
+:is(.message_d5deea, .message__5126c) {
+  display: flex;
+  gap: 12px;
+}
+
+.avatar_c19a55 {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* The plate behind someone's initials. This is one of the few colours that
+   belongs here: Discord draws a default avatar for anyone without a picture and
+   the theme never touches avatar backgrounds, so it is not a decision being
+   duplicated. --av offsets it from the seed hue, so it still retunes. */
+.avatar_c19a55:not(:has(img)) {
+  background: hsl(calc(var(--t-hue) + var(--av, 0)), 32%, 40%);
+  color: var(--t-text-high);
+}
+
+.avatar_c19a55 img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.t-msg-body {
+  min-width: 0;
+}
+
+.t-msg-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.username_c19a55 {
+  font-weight: 650;
+}
+
+.markup__75297 {
+  margin: 2px 0 0;
+  line-height: 1.45;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.wrapper_f61d60 {
+  font-weight: 600;
+}
+
+.botTagRegular__82f07 {
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+/* the date divider is styled entirely by the theme, rules included */
+.reactions__23977 {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* The transparent resting border is Discord's, and the theme depends on it: it
+   only recolours the border on hover and transitions border-color, so with no
+   border at rest the hover grew the pill by 2px and pushed the whole scrollback
+   up. */
+.reaction__23977 {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border: 1px solid transparent;
+  font-size: 12px;
+}
+
+.embedFull__623de {
+  display: block;
+  margin-top: 8px;
+  max-width: 320px;
+  padding: 10px 12px;
+  line-height: 1.35;
+}
+
+.t-embed-author {
+  display: block;
+  font-size: 11px;
+}
+
+.t-embed-title {
+  display: block;
+  margin-top: 2px;
+  font-weight: 650;
+}
+
+.t-embed-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+/* Discord colours links from --text-link, which the theme maps onto the
+   primary role - so this stays theme-driven rather than picked here. */
+.t-link {
+  color: var(--text-link);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+/* --- composer --- */
+.form_f75fb0 {
+  flex: 0 0 auto;
+  margin: 4px 16px 16px;
+}
+
+.channelTextArea__74017 {
+  padding: 12px 16px;
+}
+
+/* --- member list --- */
+.members_c8ffbb {
+  flex: 0 0 200px;
+  padding-top: 12px;
+  overflow: hidden;
+}
+
+.members_c8ffbb ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.membersGroup_c8ffbb {
+  padding: 14px 20px 4px;
+  font-size: 12px;
+}
+
+.member__5d473 {
+  margin: 2px 8px;
+}
+
+.memberInner__5d473 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+.memberInner__5d473 .avatar_c19a55 {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.t-member-off {
+  opacity: 0.45;
+}
+
+/* ------------------------------------------------------------
+   C. Narrower viewports
+   Media queries inside a shadow root still test the viewport, so
+   the preview drops panes here rather than in the page's own
+   stylesheet - next to the layout they alter.
+   ------------------------------------------------------------ */
+@media (max-width: 1000px) {
+  .members_c8ffbb {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .wrapper_ef3116 {
+    display: none;
+  }
+  .sidebar__5e434 {
+    flex-basis: 216px;
+  }
+}
+/* Below this the two remaining panes leave the chat too narrow to read a
+   sentence in, so they stack: the sidebar keeps the selected-channel pill, the
+   chat keeps the messages, and both get the full width. */
+@media (max-width: 620px) {
+  .t-app {
+    flex-direction: column;
+  }
+  .sidebar__5e434 {
+    flex: 0 0 auto;
+  }
+  .sidebarList__5e434 {
+    flex: 0 0 auto;
+  }
+  /* the account panel repeats what the member list already showed */
+  .panels__5e434 {
+    display: none;
+  }
+}
+/*! Material 3 Expressive 1.0.0 - core stylesheet
+ * https://github.com/AEYCEN/Discord-Material3-Expressive
+ * Do not edit this file to customise the theme: override the --t-* tokens in
+ * your own theme file instead (see Material3-Expressive-v1-Vencord.css).
+ */
+@import "https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Michroma&display=swap";:root{--t-hue:-187;--t-hue-secondary:var(--t-hue);--t-hue-tertiary:calc(var(--t-hue) + 25);--t-background-image:none;--t-background-position:center;--t-background-size:cover;--t-background-blur:0px;--t-background-dim:.55;--t-surface-alpha:1;--t-monogram:"";--t-monogram-font:"Anurati", "Syncopate", "Michroma", sans-serif;--t-monogram-size:96px;--t-monogram-opacity:.07;--t-monogram-spacing:.25em;--t-monogram-x:flex-end;--t-monogram-y:flex-end;--t-monogram-fluid:11cqw;--t-surface-0:hsl(var(--t-hue) 22% 6%);--t-surface-1:hsl(var(--t-hue) 20% 9% / var(--t-surface-alpha));--t-surface-2:hsl(var(--t-hue) 18% 12% / var(--t-surface-alpha));--t-surface-3:hsl(var(--t-hue) 16% 16% / var(--t-surface-alpha));--t-surface-4:hsl(var(--t-hue) 15% 20%);--t-surface-5:hsl(var(--t-hue) 14% 25%);--t-text-high:hsl(var(--t-hue) 30% 93%);--t-text-mid:hsl(var(--t-hue) 18% 72%);--t-text-low:hsl(var(--t-hue) 12% 50%);--t-primary:hsl(var(--t-hue) 100% 86%);--t-on-primary:hsl(var(--t-hue) 55% 18%);--t-primary-container:hsl(var(--t-hue) 42% 38%);--t-on-primary-container:hsl(var(--t-hue) 100% 94%);--t-secondary:hsl(var(--t-hue-secondary) 26% 74%);--t-secondary-container:hsl(var(--t-hue-secondary) 22% 24%);--t-on-secondary-container:hsl(var(--t-hue-secondary) 40% 90%);--t-tertiary:hsl(var(--t-hue-tertiary) 60% 80%);--t-on-tertiary:hsl(var(--t-hue-tertiary) 50% 14%);--t-tertiary-container:hsl(var(--t-hue-tertiary) 34% 32%);--t-on-tertiary-container:hsl(var(--t-hue-tertiary) 70% 93%);--t-role-contrast:.5;--t-role-lift:1.7;--t-role-saturate:1.5;--t-success:#81cfa8;--t-warning:#f3c968;--t-danger:#f88581;--t-streaming:#bf97ed;--t-radius-container:20px;--t-radius-card:14px;--t-radius-input:12px;--t-radius-code:8px;--t-radius-pill:999px;--t-font-ui:"gg sans", "Inter", "Segoe UI", system-ui, sans-serif;--t-font-mono:"JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, "gg mono", monospace;--t-spring-snappy:linear(0, .38 8%, .72 16%, .96 24%, 1.09 33%, 1.11 40%, 1.07 50%, 1.02 60%, .99 70%, 1);--t-spring-bouncy:linear(0, .22 6%, .58 13%, .92 21%, 1.14 30%, 1.2 37%, 1.14 46%, 1.04 56%, .98 66%, .99 78%, 1);--t-dur-fast:.22s;--t-dur-base:.38s;--t-dur-slow:.56s}.theme-dark,.theme-darker,.theme-midnight,.visual-refresh.theme-dark,.visual-refresh.theme-darker,.visual-refresh.theme-midnight{--background-base-lowest:var(--t-surface-0);--background-base-lower:var(--t-surface-1);--background-base-low:var(--t-surface-2);--background-base-primary:var(--t-surface-1);--background-surface-high:var(--t-surface-3);--background-surface-higher:var(--t-surface-4);--background-surface-highest:var(--t-surface-5);--background-surface-overlay:var(--t-surface-4);--background-mod-faint:hsl(var(--t-hue) 60% 90% / .03);--background-mod-subtle:hsl(var(--t-hue) 60% 90% / .06);--background-mod-normal:hsl(var(--t-hue) 60% 90% / .09);--background-mod-strong:hsl(var(--t-hue) 60% 90% / .13);--chat-background-default:var(--t-surface-1);--channeltextarea-background:var(--t-surface-3);--input-background:var(--t-surface-3);--input-border:var(--border-subtle);--background-primary:var(--t-surface-1);--background-secondary:var(--t-surface-2);--background-secondary-alt:var(--t-surface-2);--background-tertiary:var(--t-surface-0);--background-floating:var(--t-surface-4);--background-nested-floating:var(--t-surface-4);--background-accent:var(--t-surface-3);--background-modifier-hover:var(--background-mod-subtle);--background-modifier-active:var(--background-mod-normal);--background-modifier-selected:var(--background-mod-strong);--background-modifier-accent:var(--background-mod-subtle);--background-message-hover:hsl(var(--t-hue) 60% 90% / .025);--modal-background:var(--t-surface-2);--modal-footer-background:var(--t-surface-1);--background-mentioned:hsl(var(--t-hue-tertiary) 60% 80% / .12);--background-mentioned-hover:hsl(var(--t-hue-tertiary) 60% 80% / .18);--background-message-highlight:hsl(var(--t-hue-tertiary) 60% 80% / .12);--background-message-highlight-hover:hsl(var(--t-hue-tertiary) 60% 80% / .18);--mention-foreground:var(--t-on-tertiary-container);--mention-background:var(--t-tertiary-container);--text-strong:var(--t-text-high);--text-default:var(--t-text-high);--text-normal:var(--t-text-high);--text-subtle:var(--t-text-mid);--text-secondary:var(--t-text-mid);--text-muted:var(--t-text-low);--header-primary:var(--t-text-high);--header-secondary:var(--t-text-mid);--channels-default:var(--t-text-mid);--interactive-normal:var(--t-text-mid);--interactive-hover:var(--t-text-high);--interactive-active:var(--t-text-high);--interactive-muted:var(--t-text-low);--interactive-text-default:var(--t-text-mid);--interactive-text-hover:var(--t-text-high);--interactive-text-active:var(--t-on-primary-container);--interactive-icon-active:var(--t-on-primary-container);--icon-strong:var(--t-text-high);--icon-default:var(--t-text-mid);--icon-muted:var(--t-text-low);--text-link:var(--t-primary);--text-brand:var(--t-primary);--text-positive:var(--t-success);--text-warning:var(--t-warning);--text-danger:var(--t-danger);--text-feedback-positive:var(--t-success);--text-feedback-critical:var(--t-danger);--brand-500:var(--t-primary);--brand-560:var(--t-primary);--brand-600:var(--t-primary-container);--brand-experiment:var(--t-primary);--brand-experiment-560:var(--t-primary-container);--brand-experiment-600:var(--t-primary-container);--button-filled-brand-background:var(--t-primary);--button-filled-brand-background-hover:hsl(var(--t-hue) 100% 90%);--button-filled-brand-text:var(--t-on-primary);--button-secondary-background:var(--t-surface-3);--button-secondary-background-hover:var(--t-surface-4);--button-secondary-text:var(--t-text-high);--button-danger-background:var(--t-danger);--button-danger-background-hover:#faa19e;--button-positive-background:var(--t-success);--control-brand-foreground:var(--t-primary);--focus-primary:var(--t-primary);--status-positive:var(--t-success);--status-positive-background:var(--t-success);--status-warning:var(--t-warning);--status-warning-background:var(--t-warning);--status-danger:var(--t-danger);--status-danger-background:var(--t-danger);--status-online:var(--t-success);--status-idle:var(--t-warning);--status-dnd:var(--t-danger);--status-streaming:var(--t-streaming);--status-offline:var(--t-text-low);--status-speaking:var(--t-primary);--status-speaking-background:var(--t-primary);--voice-speaking:var(--t-primary);--border-faint:hsl(var(--t-hue) 60% 90% / .04);--border-subtle:hsl(var(--t-hue) 60% 90% / .07);--border-normal:hsl(var(--t-hue) 60% 90% / .1);--border-strong:hsl(var(--t-hue) 60% 90% / .14);--radius-xs:6px;--radius-sm:var(--t-radius-code);--radius-md:var(--t-radius-input);--radius-lg:var(--t-radius-card);--radius-xl:var(--t-radius-container);--radius-round:var(--t-radius-pill);--elevation-low:none;--elevation-medium:0 0 0 1px var(--border-subtle);--elevation-high:0 0 0 1px var(--border-subtle), 0 16px 40px hsl(var(--t-hue) 30% 3% / .6);--shadow-low:var(--elevation-low);--shadow-medium:var(--elevation-medium);--shadow-high:var(--elevation-high);--scrollbar-thin-thumb:var(--t-surface-4);--scrollbar-thin-track:transparent;--scrollbar-auto-thumb:var(--t-surface-4);--scrollbar-auto-track:transparent;--scrollbar-auto-scrollbar-color-thumb:var(--t-surface-4);--scrollbar-auto-scrollbar-color-track:transparent;--font-primary:var(--t-font-ui);--font-display:var(--t-font-ui);--font-headline:var(--t-font-ui);--font-code:var(--t-font-mono)}body,button,input,select,textarea,::placeholder{font-family:var(--t-font-ui)}code{font-family:var(--t-font-mono)}::selection{background:var(--t-primary-container);color:var(--t-on-primary-container)}:is(html,body,.appMount__51fd7){background:0 0}.bg__960e4{background:radial-gradient(1200px 700px at -10% -10%, hsl(var(--t-hue) 60% 50% / .18), transparent 60%), radial-gradient(900px 600px at 110% 110%, hsl(var(--t-hue) 50% 45% / .06), transparent 60%), var(--t-surface-0);filter:none}.bg__960e4:before{content:"";inset:calc(var(--t-background-blur) * -2);background:var(--t-background-image) var(--t-background-position)/var(--t-background-size) no-repeat;filter:blur(var(--t-background-blur));z-index:-1;position:absolute}.bg__960e4:after{content:"";background:hsl(var(--t-hue) 22% 6% / var(--t-background-dim));z-index:-1;position:absolute;inset:0}.bg__960e4{isolation:isolate;position:fixed;inset:0;overflow:hidden}.app_a3002d,.app__160d8,.layer__960e4,.container_a2f514{background:0 0}.wrapper_ef3116{background:var(--t-surface-1);padding-top:8px}.childWrapper__6e9f8,.icon__6e9f8,.circleIconButton__5bc7e{background-color:var(--t-surface-3);border-radius:var(--t-radius-card)}.wrapper__6e9f8:hover .childWrapper__6e9f8,.circleIconButton__5bc7e:hover:not(.disabled__5bc7e){background-color:var(--t-primary-container);color:var(--t-on-primary-container);border-radius:var(--t-radius-input)}.wrapper__6e9f8.selected__6e9f8 .childWrapper__6e9f8,.circleIconButton__5bc7e.selected__5bc7e{background-color:var(--t-primary);color:var(--t-on-primary)}.childWrapper__6e9f8 path{fill:currentColor}.item__58105{background:var(--t-primary);border-radius:var(--t-radius-pill);box-shadow:none;transition:height var(--t-dur-base) var(--t-spring-bouncy)}.numberBadge__463b7,.textBadge__463b7,.iconBadge__03991,.mention__3b95d{background:var(--t-tertiary)!important;color:var(--t-on-tertiary)!important}.sidebar__5e434,.sidebarList__5e434{background:var(--t-surface-2);border-radius:var(--t-radius-container) 0 0 var(--t-radius-container);border:none}.sidebar__5e434:after{display:none}.container__2637a,.privateChannels_e6b769,.scroller__99e7c{background:0 0}.animatedContainer_f37cb1{background:0 0;border:none}.name__29444,.headerText__99e7c,.privateChannelsHeaderContainer__99e7c{color:var(--t-secondary);text-transform:none;letter-spacing:0;font-size:12px;font-weight:600}.wrapper__29444:hover .name__29444,.addButtonIcon__29444{color:var(--t-secondary)}.wrapper__29444.muted__29444 .name__29444{opacity:.5}.link__2ea32{border-radius:var(--t-radius-pill);box-sizing:border-box;width:auto;margin:1px 8px 1px 6px;padding-left:10px}.name__2ea32{color:var(--t-text-mid);font-size:14px;font-weight:500}.icon__2ea32{width:18px;height:18px;color:var(--t-text-low)}.wrapper__2ea32:hover .link__2ea32{background:var(--background-mod-subtle)}.wrapper__2ea32:hover .name__2ea32,.wrapper__2ea32:hover .icon__2ea32{color:var(--t-text-high)}.wrapper__2ea32.modeMuted__2ea32 :is(.name__2ea32,.icon__2ea32){color:var(--t-text-low);opacity:.7}.wrapper__2ea32.modeUnreadImportant__2ea32 .name__2ea32{color:var(--t-text-high);font-weight:600}.wrapper__2ea32.modeUnreadImportant__2ea32 .icon__2ea32{color:var(--t-text-high)}.unread__2ea32{background:var(--t-tertiary);border-radius:var(--t-radius-pill);width:4px;box-shadow:none}.wrapper__2ea32.modeSelected__2ea32 .link__2ea32{background:var(--t-primary-container)}.wrapper__2ea32.modeSelected__2ea32 :is(.name__2ea32,.icon__2ea32){color:var(--t-on-primary-container)}.wrapper__2ea32.modeConnected__2ea32 :is(.name__2ea32,.icon__2ea32){color:var(--t-primary);filter:none;text-shadow:none}.newChannel__599fa{background:var(--t-surface-4)!important;color:var(--t-text-mid)!important}.interactive__972a0{border-radius:var(--t-radius-pill);box-sizing:border-box;width:auto;max-width:calc(100% - 16px);margin:1px 8px}.interactive__972a0:hover{background:var(--background-mod-subtle)}.interactive__972a0.interactiveSelected__972a0{background:var(--t-primary-container);color:var(--t-on-primary-container)}.interactive__972a0.interactiveSelected__972a0 .activityStatusText__972a0,.interactive__972a0.interactiveSelected__972a0 .activityStatusText__972a0 strong{color:var(--t-on-primary-container)}.panels__5e434{background:var(--t-surface-3);border-radius:var(--t-radius-card);border:none;width:auto;margin:0 8px 8px;left:0;right:0}.panel__5dec7{background:0 0}.button_e131a9.buttonColor_e131a9{background:var(--t-primary);color:var(--t-on-primary);border-radius:var(--t-radius-input)}.button_e131a9.buttonColor_e131a9:hover{background:hsl(var(--t-hue) 100% 90%)}.chat_f75fb0{background:0 0;border:none}.chatContent_f75fb0,.noChannel__01d5c,.callContainer_cb9592{background:var(--t-surface-1);border:none}.scroller_f35c3c{background:0 0;border:none}.chatContent_f75fb0,.noChannel__01d5c{isolation:isolate;position:relative;overflow:hidden;container:t-chat/inline-size}.chatContent_f75fb0:before,.noChannel__01d5c:before{content:var(--t-monogram);align-items:var(--t-monogram-y);justify-content:var(--t-monogram-x);font-family:var(--t-monogram-font);font-size:min(var(--t-monogram-size), var(--t-monogram-fluid));letter-spacing:var(--t-monogram-spacing);text-transform:uppercase;color:hsl(var(--t-hue) 100% 86% / var(--t-monogram-opacity));white-space:nowrap;pointer-events:none;user-select:none;z-index:-1;padding:72px 32px 96px;font-weight:400;line-height:1;display:flex;position:absolute;inset:0}@container t-chat (width<=419px){.chatContent_f75fb0:before,.noChannel__01d5c:before{display:none}}.chatGradientBase__36d07{background:0 0}.chatHeaderBar_dc83f5,.chatHeaderBar_a5700d{background:var(--t-surface-1);border-bottom:1px solid var(--border-faint)}.title_c38106,.bar_c38106{background:0 0}.mentioned__5126c{background:var(--background-mentioned)}.mentioned__5126c:before{background-color:var(--t-tertiary);border-radius:var(--t-radius-pill)}.replying__5126c{background:hsl(var(--t-hue) 100% 86% / .07)}.replying__5126c:before{background:var(--t-primary)}.repliedMessageClickableSpine_c19a55,.messageSpine_c19a55:before,.cozy_c19a55.hasThread_c19a55:after{border-color:var(--t-primary-container)}.wrapper_f61d60{background:var(--t-tertiary-container);color:var(--t-on-tertiary-container);border-radius:var(--t-radius-pill);padding:0 6px;font-weight:600}.wrapper_f61d60:hover{background:var(--t-tertiary);color:var(--t-on-tertiary)}.botTagRegular__82f07{background:var(--t-surface-4);color:var(--t-text-mid);border-radius:var(--t-radius-code)}[class*=timestamp_] time,.timestamp_c19a55{color:var(--t-text-low);font-size:11px}.divider__908e2{--divider-color:var(--t-tertiary)}.content__908e2{color:var(--t-tertiary);background:0 0;font-weight:600}.embedFull__623de,.container__60fa3,.file__0ccae,.wrapper_d5f3cd,.guildInviteContainer__083ae,.wrapperAudio_cf09d8,.wrapper_cf09d8,.textContainer__4d95d,.footer__4d95d,.container__9271d,.container_a8e786{background:var(--t-surface-2);border-radius:var(--t-radius-card);border:none}.embedFull__623de{border-left:3px solid var(--t-primary-container)}.hljs{background:var(--t-surface-0);border-radius:var(--t-radius-code);border:none}.markup__75297 code{background:var(--t-surface-0);border-radius:var(--t-radius-code)}.markup__75297 code.inline{background:hsl(var(--t-hue) 60% 90% / .08);color:var(--t-primary);border:none;padding:2px 6px}.blockquoteContainer__75297 .blockquoteDivider__75297{background:var(--border-strong);border-radius:var(--t-radius-pill)}.reactions__23977 .reactionMe__23977,.reactions_f8896c .reactionMe_f8896c{background:var(--t-primary-container);border-color:#0000}.reactions__23977 .reactionMe__23977 .reactionCount__23977,.reactions_f8896c .reactionMe_f8896c .reactionCount_f8896c{color:var(--t-on-primary-container)}:is(.reaction__23977,.reactionBtn__23977,.reaction_f8896c,.reactionBtn_f8896c){border-radius:var(--t-radius-pill)}:is(.reaction__23977,.reactionBtn__23977,.reaction_f8896c,.reactionBtn_f8896c):hover{border:1px solid var(--t-primary-container)}.newMessagesBar__0f481{background:var(--t-tertiary-container);color:var(--t-on-tertiary-container);border-radius:var(--t-radius-pill);top:8px}.jumpToPresentBar__0f481{background:var(--t-surface-4);border-radius:var(--t-radius-pill);border:none}.form_f75fb0{margin-top:4px}.channelTextArea__74017{background-color:var(--t-surface-3);box-shadow:none;border-radius:var(--t-radius-container);border:none;transition:box-shadow .15s}.channelTextArea__74017:focus-within{box-shadow:0 0 0 1.5px var(--t-primary-container)}.scrollableContainer__74017,.themedBackground__74017,.stackedBars__74017,.channelAttachmentArea_b77158{background:0 0;border:none}.upload_aa605f{background:var(--t-surface-2);border-radius:var(--t-radius-card);border:none}.formWithLoadedChatInput_f75fb0:before{content:none}.container_c8ffbb,.membersWrap_c8ffbb{background:0 0;border:none}.members_c8ffbb{background:var(--t-surface-2);border-radius:0 var(--t-radius-container) var(--t-radius-container) 0}.membersGroup_c8ffbb{color:var(--t-secondary);text-transform:none;letter-spacing:0;padding-left:12px;font-size:12px;font-weight:600}.member__5d473{border-radius:var(--t-radius-pill);box-sizing:border-box;max-width:calc(100% - 16px);transition:background-color var(--t-dur-fast) ease, box-shadow var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy);background:0 0;margin:2px 8px;padding:0}.member__5d473 .memberInner__5d473,.member__5d473 .layout__91a9d{border-radius:var(--t-radius-pill);box-sizing:border-box;background:0 0;min-height:44px;padding:6px 10px 6px 8px}.member__5d473 .childContainer__91a9d,.member__5d473 .content__91a9d{background:0 0;min-width:0;padding:0}.member__5d473:hover{background:var(--background-mod-subtle)}.member__5d473:has(.selected__91a9d),.member__5d473.selected__91a9d{background:hsl(var(--t-hue) 42% 38% / .22);box-shadow:inset 0 0 0 1.5px var(--t-primary-container)}.member__5d473:has(.selected__91a9d) [class*=subText],.member__5d473:has(.selected__91a9d) [class*=activity]{color:var(--t-primary)}.member__5d473:has(.selected__91a9d) [class*=nameplate],.member__5d473:has(.selected__91a9d) [class*=Nameplate]{opacity:.35;border-radius:var(--t-radius-pill)}.member__5d473 .nameContainer__703b9,.member__5d473 .name__91a9d{text-overflow:ellipsis;white-space:nowrap;line-height:1.25;overflow:hidden}.menu_c1e9c4,.popout_a16aea,.popout_a16aea.popoutPositionTop_a16aea,.autocomplete__13533,.tooltip_fa450d,.tooltip__4e35b,.wrapper_f7ecac,.popover_f84418.popover_f84418,.container__8cb2e,.contentWrapper__08434,.contentWrapper__9c62c,.popoutContainer__0f481,.messagesPopoutWrap__432f4,.container__16eb0,.quickSelectPopout_ebaca5,.browser_d98031,.picker__09f65,.picker__09f65.refresh__09f65,.emojiPicker_c0e32c,.header_c0e32c,.toolbar_bba883,.rolePopout__75297,.containerBackground_d4ced7,.noiseCancellationPopout_e131a9,.customColorPicker__459fb,.selectDropdown__0edde{background:var(--t-surface-4);box-shadow:var(--elevation-high);border-radius:var(--t-radius-card);border:none}.caretIcon_fa450d .caretFill_fa450d,.caretIcon__4e35b .caretFill__4e35b,.toolbar_bba883:before,.containerBackground_d4ced7:after{fill:var(--t-surface-4);border-top-color:var(--t-surface-4)}.menu_c1e9c4 .item_c1e9c4,[role=menu] [role=menuitem],[role=menu] [role=menuitemcheckbox],[role=menu] [role=menuitemradio]{border-radius:var(--t-radius-input);margin:1px 6px;padding-left:10px;padding-right:10px}.menu_c1e9c4{padding:6px 0}.menu_c1e9c4 .colorDefault_c1e9c4.focused_c1e9c4,[role=menu] [role=menuitem].focused_c1e9c4,[role=menu] [class*=colorDefault][class*=focused]{background-color:var(--t-primary-container);border-radius:var(--t-radius-input)}.menu_c1e9c4 .separator_c1e9c4,[role=menu] [role=separator]{border-color:var(--border-subtle);margin:4px 12px}[role=menu] .slider_a562c8 .barFill_a562c8{background:var(--t-primary)}.item_c1e9c4.focused_c1e9c4 .label_c1e9c4,.colorDefault_c1e9c4:active .label_c1e9c4{color:var(--t-on-primary-container)}.colorDanger_c1e9c4.focused_c1e9c4{background-color:var(--t-danger);color:var(--t-on-tertiary)}.clickable__13533[aria-selected=true] .base__13533,.clickable__13533[aria-disabled=false] .base__13533:hover{background:var(--t-primary-container);border-radius:var(--t-radius-input)}.option_a16aea{border-radius:var(--t-radius-input);margin:0 6px}.option_a16aea[aria-selected=true]{background:var(--t-primary-container)}.wrapper__14245,.sectionContainer__61424{background:var(--t-surface-5);border-radius:var(--t-radius-input)}.categoryItemDefaultCategorySelected_b9ee0c,.categoryItemDefaultCategorySelected_b9ee0c:hover,.stickerCategoryGenericSelected__3ad28,.firstPartyCategorySelected__3ad28,.navButtonActive__08434{background:var(--t-primary-container);border-radius:var(--t-radius-input)}.emojiItem_fc7141.emojiItemSelected_fc7141{background:var(--t-primary-container);border-radius:var(--t-radius-code)}:is(.root__49fc1,.container__8a031),.keyboardShortcutsModal_f061f6,.browser__9a792{background:var(--t-surface-2);box-shadow:var(--elevation-high);border-radius:var(--t-radius-container);border:none}.header__49fc1,.content__49fc1{background:0 0}.footer__49fc1,[role=dialog] [class*=footer_],.footer_a55fdc{background:var(--t-surface-3);border-top:1px solid var(--border-faint);border-radius:0 0 var(--t-radius-container) var(--t-radius-container);box-shadow:none;box-sizing:border-box;width:100%;margin:0}:is(.root__49fc1,.container__8a031),[role=dialog]>[class*=root_]{border-radius:var(--t-radius-container);overflow:hidden}.container__8a031:has(>.root_a55fdc){border-radius:var(--t-radius-container);padding:0;overflow:hidden}.root_a55fdc{border-radius:inherit;flex-direction:column;height:100%;min-height:0;display:flex;overflow:hidden}.header_a55fdc{padding:24px 24px 0}.root_a55fdc>:not(.header_a55fdc,.footer_a55fdc){flex:auto;min-height:0;padding-left:24px;padding-right:24px}.footer_a55fdc{flex:none;margin-top:0;padding:0}.footerContent_a55fdc{box-sizing:border-box;flex-flow:row;justify-content:space-between;align-items:center;gap:16px;width:100%;min-height:64px;padding:12px 24px;display:flex}.root_e529a0{flex:auto;align-items:center;width:auto;min-width:0;display:flex}.summary_e529a0{flex-direction:column;justify-content:center;gap:3px;min-width:0;display:flex}.sourceOrPresetName_e529a0{line-height:1.25;color:var(--t-text-high)!important}.summaryDetail_e529a0{white-space:nowrap;text-overflow:ellipsis;align-items:center;gap:6px;line-height:1.25;display:flex;overflow:hidden;color:var(--t-text-low)!important}.ellipsis_e529a0{opacity:.6}.rightButtonGroup_a55fdc{flex:none;align-items:center;gap:8px;margin-left:auto;display:flex}.rightButtonGroup_a55fdc .button_a22cb0{border-radius:var(--t-radius-pill);background:var(--t-surface-4);justify-content:center;align-items:center;width:40px;height:40px;padding:0;display:inline-flex}.rightButtonGroup_a55fdc .button_a22cb0:hover{background:var(--t-primary-container);color:var(--t-on-primary-container)}.rightButtonGroup_a55fdc .lottieIcon__5eb9b path[fill="rgb(88,101,242)"]{fill:currentColor}.standardSidebarView__23e6b,.contentRegionScroller__23e6b{background:0 0}.sidebarRegionScroller__23e6b{background:var(--t-surface-2);padding:20px 8px 60px 12px}.contentRegion__23e6b{background:var(--t-surface-1)}.item_caf372{border-radius:var(--t-radius-pill);margin:1px 0}.item_caf372:hover{background:var(--background-mod-subtle)}.item_caf372.active_caf372,.item_caf372.active_caf372:hover{background:var(--t-primary-container);color:var(--t-on-primary-container)}.sectionLabel__409aa:before,.sectionLabel__409aa:after,.fixedContent__409aa:after{display:none}.sectionLabel__409aa{justify-content:flex-start}.label__409aa{text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;color:var(--t-secondary)!important}:is(.cardPrimary__73069,.cardPrimary_b5dd01),:is(.cardPrimary__73069,.cardPrimary_b5dd01):is(.editable__73069,.editable_b5dd01),.accountProfileCard_a27e58,:is(.card__73069,.card_b5dd01),.settingCard__1a4ef,.settingCard__1a4ef.active__1a4ef{--__card-accent-color:var(--t-surface-3);background:var(--t-surface-3);border-radius:var(--t-radius-card);border-color:#0000}:is(.card__73069,.card_b5dd01) a{color:var(--t-primary)}.contentColumnDefault__23e6b{padding-top:50px}.top_aa8da2 .item_aa8da2{--selected-tab-item-color:var(--t-primary)}:is(.topPill_aa8da2,.side_aa8da2) .themed_aa8da2.item_aa8da2{border-radius:var(--t-radius-pill)}:is(.topPill_aa8da2,.side_aa8da2) .themed_aa8da2.item_aa8da2.selected_aa8da2{background-color:var(--t-primary-container);color:var(--t-on-primary-container)}.pill_a2c9e8{border-radius:var(--t-radius-pill);background:var(--t-surface-3);border-color:#0000}.pill_a2c9e8.selected_a2c9e8{background:var(--t-primary-container);color:var(--t-on-primary-container);border-color:#0000}.pillItemSelected__9e06a,.selectorButtonSelected__0907c,.activeButton_c15210{background:var(--t-primary-container);color:var(--t-on-primary-container)}.button__201d5,.button_a22cb0,.vc-btn-primary{border-radius:var(--t-radius-pill)}.lookFilled__201d5:is(.colorBrand__201d5,.colorPrimary__201d5),.primary_a22cb0,.vc-btn-primary{background:var(--t-primary);color:var(--t-on-primary);border:none}.lookFilled__201d5:is(.colorBrand__201d5,.colorPrimary__201d5):hover,.primary_a22cb0:hover,.vc-btn-primary:hover{background:hsl(var(--t-hue) 100% 91%)}.secondary_a22cb0{background:var(--t-surface-3);border-color:#0000}.secondary_a22cb0:hover{background:var(--t-surface-4)}.lookFilled__201d5.colorGreen__201d5,.active_a22cb0{background:var(--t-success);color:#0f2e1f;border:none}.lookFilled__201d5.colorRed__201d5,.critical-primary_a22cb0{background:var(--t-danger);color:#39100e;border:none}.lookOutlined__201d5:is(.colorBrand__201d5,.colorPrimary__201d5){border-color:var(--t-primary-container)}.wrapper__72c38,.container_a45028,.container_fea832,.searchBar__97492,.input_ac6cb0,.addFriendInputWrapper__72ba7,.textArea_c615b7,.keywordsTextArea__6a631{background:var(--t-surface-3);border-radius:var(--t-radius-input);border:1px solid #0000}.wrapper__72c38:has(input:focus,textarea:focus),.container_a45028:focus-within,.container_fea832:focus-within,.searchBar__97492:focus-within,.input_ac6cb0:focus-within,.addFriendInputWrapper__72ba7:focus-within{border-color:var(--t-primary-container);box-shadow:none;outline:none}.switchIndicator_a28278:not([style*="background-color: rgba(0, 0, 0, 0.12)"]),.vc-switch-container.vc-switch-checked{background:var(--t-primary)!important}.vc-switch-container.vc-switch-checked path{fill:var(--t-on-primary)}.checkboxOption__714a9[data-selected] .checkboxIndicator__714a9{border-color:var(--t-primary);background-color:var(--t-primary)}.slider_a562c8 .barFill_a562c8,.mediaBarProgress_b26b79,.fill__55b14{background:var(--t-primary)}.slider_a562c8 .grabber_a562c8{filter:none}.focus-rings-ring{box-shadow:0 0 0 2px var(--t-primary);border-radius:inherit}.notice__6e2b9{border-radius:0 0 var(--t-radius-card) var(--t-radius-card)}.colorBrand__6e2b9{--custom-notice-background:var(--t-primary-container)}.colorDanger__6e2b9{--custom-notice-background:var(--t-danger)}.colorStreamerMode__6e2b9{--custom-notice-background:var(--t-streaming)}.searchResultsWrap_a98f3b,.searchHeader_ae7890{background:var(--t-surface-2);border:none}.searchResult__80bf8{background:var(--t-surface-3);border-radius:var(--t-radius-card);border:none}.searchFilter_bd8186,.searchAnswer_bd8186{background:var(--t-primary-container);color:var(--t-on-primary-container)}.outer_c0bea0{border-radius:var(--t-radius-container);border:none}.outer_c0bea0:not(.custom-user-profile-theme){background:var(--t-surface-3)}.outer_c0bea0:not(.custom-user-profile-theme) .inner_c0bea0{background:0 0}.overlay_c0bea0{background-color:var(--t-surface-4)}.user-profile-popout:before,.user-profile-modal:before,.user-profile-modal-v2:before{content:none}.vc-card-base,.vc-addon-card,.vc-settings-quickActions-pill{background:var(--t-surface-3);border-radius:var(--t-radius-card);border:1px solid #0000}.vc-addon-card:hover,.vc-settings-quickActions-pill:hover{background:var(--t-surface-4);border-color:var(--t-primary-container);box-shadow:none;transform:none}.vc-notification-root{background:var(--t-surface-4);border-radius:var(--t-radius-card)}.vc-special-card{display:none}:is(:is(.auto__99f8c,.auto_d125d2),:is(.thin__99f8c,.thin_d125d2))::-webkit-scrollbar{width:10px}:is(:is(.auto__99f8c,.auto_d125d2),:is(.thin__99f8c,.thin_d125d2))::-webkit-scrollbar-thumb{background-color:var(--t-surface-5);border-radius:var(--t-radius-pill);background-clip:padding-box;border:3px solid #0000}:is(:is(.auto__99f8c,.auto_d125d2),:is(.thin__99f8c,.thin_d125d2))::-webkit-scrollbar-thumb:active{background-color:var(--t-primary-container)}:is(:is(.auto__99f8c,.auto_d125d2),:is(.thin__99f8c,.thin_d125d2))::-webkit-scrollbar-track{background:0 0}@keyframes t-pop-in{0%{opacity:0;transform:scale(.88)translateY(6px)}to{opacity:1;transform:scale(1)translateY(0)}}@keyframes t-slide-up{0%{opacity:0;transform:translateY(14px)scale(.98)}to{opacity:1;transform:translateY(0)scale(1)}}@keyframes t-pill-settle{0%{opacity:.6;transform:scaleX(.92)translate(-4px)}to{opacity:1;transform:scaleX(1)translate(0)}}@keyframes t-icon-nod{0%{transform:scale(1)rotate(0)}40%{transform:scale(1.18)rotate(-10deg)}to{transform:scale(1)rotate(0)}}@keyframes t-text-settle{0%{transform:translate(3px)}to{transform:translate(0)}}@keyframes t-badge-pop{0%{transform:scale(.4)}to{transform:scale(1)}}@keyframes t-reaction-bump{0%{transform:scale(1)}40%{transform:scale(1.18)rotate(-4deg)}to{transform:scale(1)}}.childWrapper__6e9f8,.icon__6e9f8,.circleIconButton__5bc7e{transition:border-radius var(--t-dur-base) var(--t-spring-bouncy), background-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-bouncy)}.wrapper__6e9f8:hover .childWrapper__6e9f8,.circleIconButton__5bc7e:hover:not(.disabled__5bc7e){transform:scale(1.06)}.wrapper__6e9f8:active .childWrapper__6e9f8,.circleIconButton__5bc7e:active{border-radius:var(--t-radius-code);transition-duration:90ms;transform:scale(.9)}.wrapper__6e9f8.selected__6e9f8 .childWrapper__6e9f8{border-radius:var(--t-radius-input)}.listItem__650eb svg,.listItem__650eb foreignObject,.listItem__650eb img,.wrapper__6e9f8 svg,.childWrapper__6e9f8,.icon__6e9f8,.circleIconButton__5bc7e{transform-box:fill-box;transform-origin:50%}.listItem__650eb svg{transition:transform var(--t-dur-base) var(--t-spring-bouncy), filter var(--t-dur-base) ease}.listItem__650eb:hover svg{filter:drop-shadow(0 6px 14px hsl(var(--t-hue) 60% 40% / .35));transform:scale(1.1)}.listItem__650eb:active svg{transition-duration:90ms;transform:scale(.88)}.listItem__650eb img,.listItem__650eb foreignObject{transition:border-radius var(--t-dur-base) var(--t-spring-bouncy)}.listItem__650eb:hover img,.listItem__650eb:hover foreignObject{border-radius:var(--t-radius-input)!important}.listItem__650eb:active img,.listItem__650eb:active foreignObject{border-radius:var(--t-radius-code)!important}.link__2ea32{transition:background-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy), padding-left var(--t-dur-base) var(--t-spring-snappy);transform-origin:0}.wrapper__2ea32:hover .link__2ea32{padding-left:12px}.wrapper__2ea32:active .link__2ea32{transition-duration:80ms;transform:scale(.97)}.wrapper__2ea32.modeSelected__2ea32 .link__2ea32{animation:t-pill-settle var(--t-dur-base) var(--t-spring-snappy);padding-left:12px}.wrapper__2ea32.modeSelected__2ea32 .icon__2ea32{animation:t-icon-nod var(--t-dur-base) var(--t-spring-bouncy)}.wrapper__2ea32.modeSelected__2ea32 .name__2ea32{animation:t-text-settle var(--t-dur-base) var(--t-spring-snappy) 40ms both}.name__2ea32,.icon__2ea32{transition:color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy)}.wrapper__2ea32:hover .icon__2ea32{transform:rotate(-8deg)scale(1.1)}.unread__2ea32{transition:height var(--t-dur-base) var(--t-spring-bouncy)}.icon__29444{transition:transform var(--t-dur-base) var(--t-spring-bouncy)}.collapsed__29444 .icon__29444{transform:rotate(-90deg)}.wrapper__29444:hover .name__29444{transition:transform var(--t-dur-base) var(--t-spring-snappy);transform:translate(2px)}.interactive__972a0{transition:background-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy)}.interactive__972a0:hover,.member__5d473:hover{transform:translate(2px)}.interactive__972a0:active,.member__5d473:active{transition-duration:80ms;transform:scale(.97)}.member__5d473:has(.selected__91a9d),.interactive__972a0.interactiveSelected__972a0{animation:t-pill-settle var(--t-dur-base) var(--t-spring-snappy);transform-origin:0}.avatar_c19a55{transition:transform var(--t-dur-base) var(--t-spring-bouncy)}.avatar_c19a55.clickable_c19a55:hover{transform:scale(1.08)}.avatar_c19a55.clickable_c19a55:active{transition-duration:80ms;transform:scale(.92)}.button__201d5,.button_a22cb0,.vc-btn-primary,.button_e131a9.buttonColor_e131a9,.circleIconButton__5bc7e{transition:background-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy), border-radius var(--t-dur-base) var(--t-spring-snappy)}.button__201d5:hover,.button_a22cb0:hover,.vc-btn-primary:hover{transform:translateY(-1px)}.button__201d5:active,.button_a22cb0:active,.vc-btn-primary:active,.button_e131a9.buttonColor_e131a9:active{border-radius:var(--t-radius-input);transition-duration:80ms;transform:scale(.94)}:is(.iconWrapper_ef6e3a,.iconWrapper__9293f),[class*=iconWrapper_][role=button],.button_aa63ab,:is(.buttonWrapper_f7ecac,.buttonWrapper__24af7){transition:transform var(--t-dur-base) var(--t-spring-bouncy), color var(--t-dur-fast) ease}[class*=iconWrapper_][role=button]:hover,.button_aa63ab:hover{transform:scale(1.12)}[class*=iconWrapper_][role=button]:active,.button_aa63ab:active{transition-duration:80ms;transform:scale(.88)}.switchIndicator_a28278{transition:background-color var(--t-dur-fast) ease}.switchIndicator_a28278 svg,.slider_a28278,.vc-switch-slider{transition:transform var(--t-dur-base) var(--t-spring-bouncy)!important}.checkboxIndicator__714a9,.checkbox_f4f0eb{transition:background-color var(--t-dur-fast) ease, border-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-bouncy)}.checkboxOption__714a9[data-selected] .checkboxIndicator__714a9{animation:t-badge-pop var(--t-dur-base) var(--t-spring-bouncy)}.channelTextArea__74017,.wrapper__72c38,.searchBar__97492,.input_ac6cb0{transition:box-shadow var(--t-dur-base) var(--t-spring-snappy), border-color var(--t-dur-fast) ease, border-radius var(--t-dur-base) var(--t-spring-snappy)}.channelTextArea__74017:focus-within{border-radius:var(--t-radius-card)}.menu_c1e9c4,.popout_a16aea,.autocomplete__13533,.wrapper_f7ecac,.popover_f84418.popover_f84418,.contentWrapper__08434,.contentWrapper__9c62c,.popoutContainer__0f481,.emojiPicker_c0e32c,.picker__09f65,.quickSelectPopout_ebaca5,.rolePopout__75297,.outer_c0bea0.user-profile-popout,.selectDropdown__0edde{animation:t-pop-in var(--t-dur-base) var(--t-spring-bouncy);transform-origin:top}.tooltip_fa450d,.tooltip__4e35b{animation:t-pop-in var(--t-dur-fast) var(--t-spring-snappy)}.item_c1e9c4,.option_a16aea,.clickable__13533 .base__13533{transition:background-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy)}.menu_c1e9c4 .colorDefault_c1e9c4.focused_c1e9c4,[role=menu] [class*=colorDefault][class*=focused],.option_a16aea[aria-selected=true],.clickable__13533[aria-selected=true] .base__13533{transform:translate(4px)}.item_c1e9c4:active{transition-duration:80ms;transform:scale(.97)}.item_caf372{transition:background-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy);transform-origin:0}.item_caf372:hover{transform:translate(2px)}.item_caf372.active_caf372{animation:t-pill-settle var(--t-dur-base) var(--t-spring-snappy)}:is(.topPill_aa8da2,.side_aa8da2) .themed_aa8da2.item_aa8da2,.pill_a2c9e8{transition:background-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy)}:is(.topPill_aa8da2,.side_aa8da2) .themed_aa8da2.item_aa8da2:active,.pill_a2c9e8:active{transition-duration:80ms;transform:scale(.95)}:is(.cardPrimary__73069,.cardPrimary_b5dd01),.vc-addon-card,.vc-settings-quickActions-pill,.settingCard__1a4ef{transition:background-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-bouncy), border-color var(--t-dur-fast) ease}.vc-addon-card:hover,.vc-settings-quickActions-pill:hover{transform:translateY(-2px)}:is(.message_d5deea,.message__5126c),[class*=message_][class*=cozy]{transition:background-color var(--t-dur-fast) ease}:is(.reaction__23977,.reactionBtn__23977,.reaction_f8896c,.reactionBtn_f8896c){transition:background-color var(--t-dur-fast) ease, border-color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-bouncy)}:is(.reaction__23977,.reaction_f8896c):hover{transform:scale(1.08)}:is(.reaction__23977,.reaction_f8896c):active{animation:t-reaction-bump var(--t-dur-base) var(--t-spring-bouncy)}.hoverButtonGroup__06ab4,.wrapper__44df5{animation:t-pop-in var(--t-dur-fast) var(--t-spring-snappy);border-radius:var(--t-radius-pill)}.wrapper_f61d60{transition:background-color var(--t-dur-fast) ease, color var(--t-dur-fast) ease, transform var(--t-dur-base) var(--t-spring-snappy);display:inline-block}.wrapper_f61d60:hover{transform:scale(1.05)}.newMessagesBar__0f481,.jumpToPresentBar__0f481{animation:t-slide-up var(--t-dur-base) var(--t-spring-bouncy);transition:transform var(--t-dur-base) var(--t-spring-snappy)}.newMessagesBar__0f481:active{transform:scale(.97)}.embedFull__623de,.file__0ccae{transition:transform var(--t-dur-base) var(--t-spring-snappy)}.file__0ccae:hover{transform:translateY(-1px)}.button_e131a9{transition:transform var(--t-dur-base) var(--t-spring-bouncy), background-color var(--t-dur-fast) ease}.button_e131a9:hover{transform:scale(1.08)}.button_e131a9:active{transition-duration:80ms;transform:scale(.9)}@keyframes t-typing-dot{0%,60%,to{opacity:.4;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}@keyframes t-speaking-ring{0%{box-shadow:0 0 0 2px var(--t-primary), 0 0 0 2px hsl(var(--t-hue) 100% 86% / .35)}70%{box-shadow:0 0 0 2px var(--t-primary), 0 0 0 8px hsl(var(--t-hue) 100% 86% / 0)}to{box-shadow:0 0 0 2px var(--t-primary), 0 0 0 8px hsl(var(--t-hue) 100% 86% / 0)}}[class*=messageListItem_]{transition:opacity var(--t-dur-base) ease-out, transform var(--t-dur-base) var(--t-spring-snappy)}[class*=sending_],[class*=messageListItem_]:has([class*=sending_]){opacity:.5;animation:none;transform:translateY(4px)}[class*=sending_] .markup__75297{color:var(--t-text-mid)}.cozy_c19a55{border-radius:var(--t-radius-input);transition:background-color var(--t-dur-fast) ease;margin-left:6px;margin-right:6px}.cozy_c19a55:hover{background:var(--background-mod-faint)}.mentioned__5126c,.replying__5126c{border-radius:var(--t-radius-input)}.mentioned__5126c:before,.replying__5126c:before{width:3px;top:4px;bottom:4px;left:2px}.username_c19a55{transition:color var(--t-dur-fast) ease, filter var(--t-dur-fast) ease}.username_c19a55[style*=color],.username_c19a55[style*=gradient],[class*=desaturateUserColors][style*=color],.member__5d473 [class*=name] [style*=color],.member__5d473 [class*=username][style*=color],.interactive__972a0 [class*=name] [style*=color],.rolePopout__75297 [style*=color],.wrapper_f61d60[style*=color],.repliedTextContent_c19a55 [style*=color],.markup__75297 [class*=mention][style*=color]{filter:contrast(var(--t-role-contrast)) brightness(var(--t-role-lift)) saturate(var(--t-role-saturate))!important}.username_c19a55:hover{color:var(--t-primary);text-decoration:none;filter:none!important}.timestamp_c19a55{opacity:.7;transition:opacity var(--t-dur-fast) ease}.cozy_c19a55:hover .timestamp_c19a55{opacity:1}.divider__908e2:not(.isUnread__908e2){border:none;justify-content:center;align-items:center;gap:12px;display:flex}.divider__908e2:not(.isUnread__908e2):before,.divider__908e2:not(.isUnread__908e2):after{content:"";background:var(--border-subtle);flex:auto;height:1px}.divider__908e2:not(.isUnread__908e2) .content__908e2{background:var(--t-surface-3);color:var(--t-text-mid);border-radius:var(--t-radius-pill);flex:none;padding:2px 10px;font-size:11px}.divider__908e2:not(.isUnread__908e2) .content__908e2:before,.divider__908e2:not(.isUnread__908e2) .content__908e2:after{display:none}.isUnread__908e2 .content__908e2{background:var(--t-tertiary-container);color:var(--t-on-tertiary-container);border-radius:var(--t-radius-pill);flex:none;padding:2px 10px}[class*=imageWrapper_] img,[class*=imageWrapper_] video{border-radius:var(--t-radius-card)}[class*=imageWrapper_]{transition:transform var(--t-dur-base) var(--t-spring-snappy)}[class*=imageWrapper_]:hover{transform:scale(1.01)}[class*=typingDots_] circle,[class*=typingDots_] span{fill:var(--t-text-mid);background:var(--t-text-mid)}[class*=typingDots_]>:first-child{animation:t-typing-dot 1.1s var(--t-spring-snappy) infinite}[class*=typingDots_]>:nth-child(2){animation:t-typing-dot 1.1s var(--t-spring-snappy) .15s infinite}[class*=typingDots_]>:nth-child(3){animation:t-typing-dot 1.1s var(--t-spring-snappy) .3s infinite}[class*=typing_]{color:var(--t-text-mid)}.channelTextArea__74017 [class*=sendButton],.channelTextArea__74017 button{transition:transform var(--t-dur-base) var(--t-spring-bouncy), color var(--t-dur-fast) ease}.channelTextArea__74017 button:hover{color:var(--t-primary);transform:scale(1.12)}.channelTextArea__74017 button:active{transition-duration:80ms;transform:scale(.85)}.scrollableContainer__74017{transition:height var(--t-dur-base) var(--t-spring-snappy)}.avatar__07f91{transition:box-shadow var(--t-dur-fast) ease;border-radius:var(--t-radius-pill)}.avatar__07f91[style*=status-speaking],[class*=voiceUser_] [class*=avatar][style*=status-speaking],[class*=avatarSpeaking_],[class*=speaking_][class*=avatar]{animation:1.4s ease-out infinite t-speaking-ring}.list_c3cd7d{padding-left:20px}.callContainer_cb9592,.wrapper_cb9592,.channelChatWrapper_cb9592{background:var(--t-surface-1);border:none}.callContainer_cb9592{border-radius:var(--t-radius-container)}.wrapper_cb9592.minimum_cb9592{background:var(--t-surface-2)}[class*=tile_][class*=voice],[class*=tileChild_],[class*=voiceCallWrapper] [class*=tile]{border-radius:var(--t-radius-card);transition:transform var(--t-dur-base) var(--t-spring-snappy)}.border__2f4f7{border-radius:var(--t-radius-card);transition:box-shadow var(--t-dur-fast) ease}.border__2f4f7.speaking__2f4f7{box-shadow:inset 0 0 0 3px var(--t-primary);animation:none}.buttonSection__1405b,.participantsButton__211d1{background:var(--t-surface-4);border-radius:var(--t-radius-pill);box-shadow:var(--elevation-medium);border:none}.colorable_f1ceac{border-radius:var(--t-radius-pill);transition:transform var(--t-dur-base) var(--t-spring-bouncy), background-color var(--t-dur-fast) ease, border-radius var(--t-dur-base) var(--t-spring-snappy)}.colorable_f1ceac:hover{transform:scale(1.08)}.colorable_f1ceac:active{border-radius:var(--t-radius-input);transition-duration:80ms;transform:scale(.9)}.colorable_f1ceac.disconnect_f1ceac{background:var(--t-danger);color:#39100e}.colorable_f1ceac.disconnect_f1ceac:hover{background:#faa19e}.colorable_f1ceac[class*=active],.button_e131a9.buttonColor_e131a9.buttonActive_e131a9{background:var(--t-surface-5);color:var(--t-primary);border-color:#0000}.pulseGradient__11664{display:none}.root_bfe55a{background:0 0}[class*=rtcConnectionStatus] [class*=ping],[class*=rtcConnectionStatusConnected]{color:var(--t-success)}@keyframes t-stagger-in{0%{opacity:0;transform:translate(-8px)}to{opacity:1;transform:translate(0)}}@keyframes t-fade-up{0%{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}@keyframes t-ring-once{0%{box-shadow:0 0 0 0 hsl(var(--t-hue) 100% 86% / .5)}to{box-shadow:0 0 0 10px hsl(var(--t-hue) 100% 86% / 0)}}@keyframes t-panel-in{0%{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}.numberBadge__463b7,.textBadge__463b7{transition:transform var(--t-dur-base) var(--t-spring-bouncy)}.wrapper__2ea32:hover .numberBadge__463b7,.listItem__650eb:hover .numberBadge__463b7{transform:scale(1.12)}.wrapper__6e9f8:hover .childWrapper__6e9f8 svg{transform:rotate(-8deg)scale(1.08)}.childWrapper__6e9f8 svg{transition:transform var(--t-dur-base) var(--t-spring-bouncy);transform-box:fill-box;transform-origin:50%}[class*=folderIconWrapper_],[class*=expandedFolderBackground_]{transition:transform var(--t-dur-base) var(--t-spring-bouncy), border-radius var(--t-dur-base) var(--t-spring-bouncy), background-color var(--t-dur-fast) ease;border-radius:var(--t-radius-card)}[class*=expandedFolderBackground_]{background:var(--t-surface-3)}[class*=guildSeparator_]{background:var(--border-subtle);border-radius:var(--t-radius-pill);transition:background-color var(--t-dur-fast) ease}.mask__44b0c rect,[class*=status_]{transition:fill var(--t-dur-fast) ease, background-color var(--t-dur-fast) ease}.avatar_c19a55.clickable_c19a55:active,.avatar__07f91:active{animation:t-ring-once var(--t-dur-slow) ease-out;border-radius:var(--t-radius-pill)}.markup__75297 a,.anchor_edefb8{transition:background-size var(--t-dur-base) var(--t-spring-snappy);background-image:linear-gradient(currentColor,currentColor);background-position:0 100%;background-repeat:no-repeat;background-size:0% 1px;text-decoration:none}.markup__75297 a:hover,.anchor_edefb8:hover{background-size:100% 1px;text-decoration:none}[class*=spoilerContent_],[class*=spoilerMarkdownContent_]{transition:filter var(--t-dur-base) var(--t-spring-snappy), background-color var(--t-dur-fast) ease;border-radius:var(--t-radius-code)}[class*=spoilerContent_]:not([class*=hidden]),[class*=spoilerMarkdownContent_]:not([class*=hidden]){animation:t-fade-up var(--t-dur-fast) ease-out}[class*=replyBar_],[class*=attachedBars_]>*{animation:t-panel-in var(--t-dur-base) var(--t-spring-snappy) both;border-radius:var(--t-radius-card) var(--t-radius-card) 0 0}.searchBar__97492,.search_ea4e51{transition:width var(--t-dur-base) var(--t-spring-snappy), background-color var(--t-dur-fast) ease, box-shadow var(--t-dur-base) var(--t-spring-snappy)}.searchBar__97492:focus-within{box-shadow:0 0 0 1.5px var(--t-primary-container)}.menu_c1e9c4 .item_c1e9c4{animation:t-stagger-in var(--t-dur-fast) var(--t-spring-snappy) both}.menu_c1e9c4 .item_c1e9c4:nth-child(2){animation-delay:15ms}.menu_c1e9c4 .item_c1e9c4:nth-child(3){animation-delay:30ms}.menu_c1e9c4 .item_c1e9c4:nth-child(4){animation-delay:45ms}.menu_c1e9c4 .item_c1e9c4:nth-child(5){animation-delay:60ms}.menu_c1e9c4 .item_c1e9c4:nth-child(6){animation-delay:75ms}.menu_c1e9c4 .item_c1e9c4:nth-child(n+7){animation-delay:90ms}.emojiItem_fc7141{transition:transform var(--t-dur-base) var(--t-spring-bouncy), background-color var(--t-dur-fast) ease}.emojiItem_fc7141:hover,.emojiItem_fc7141.emojiItemSelected_fc7141{transform:scale(1.22)}.emojiItem_fc7141:active{transition-duration:80ms;transform:scale(.9)}.categoryItemDefaultCategorySelected_b9ee0c,.navButtonActive__08434{animation:t-pill-settle var(--t-dur-base) var(--t-spring-snappy)}:is(:is(.auto__99f8c,.auto_d125d2),:is(.thin__99f8c,.thin_d125d2)):hover::-webkit-scrollbar-thumb{background-color:var(--t-primary-container)}.hoverButtonGroup__06ab4 [class*=button_]:hover{animation:t-icon-nod var(--t-dur-base) var(--t-spring-bouncy)}@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}.reduced-motion *{transition-duration:.01ms!important;animation-duration:.01ms!important}</style>
+          <div class="theme-dark visual-refresh t-root">
+            <div class="appMount__51fd7">
+              <div class="bg__960e4"></div>
+              <div class="t-app">
+
+                <div class="sidebar__5e434">
+                  <div class="t-side-top">
+
+                    <nav class="wrapper_ef3116">
+                      
+                      <div class="listItem__650eb">
+                        
+                        <div class="wrapper__6e9f8">
+                          <div class="childWrapper__6e9f8"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.63 5.65a16.2 16.2 0 0 0-4.07-1.26.06.06 0 0 0-.07.03c-.17.31-.37.72-.51 1.04a15 15 0 0 0-4.49 0 10.3 10.3 0 0 0-.52-1.04.06.06 0 0 0-.06-.03c-1.42.24-2.79.67-4.07 1.26a.06.06 0 0 0-.03.02C2.9 9.52 2.2 13.28 2.55 17a.07.07 0 0 0 .02.05 16.3 16.3 0 0 0 4.92 2.49.06.06 0 0 0 .07-.02c.38-.52.72-1.06.1-1.63a.06.06 0 0 0-.04-.09 10.7 10.7 0 0 1-1.53-.73.06.06 0 0 1 0-.1l.3-.24a.06.06 0 0 1 .07 0 11.6 11.6 0 0 0 9.86 0 .06.06 0 0 1 .07 0l.3.24a.06.06 0 0 1 0 .1c-.49.29-1 .53-1.53.73a.06.06 0 0 0-.04.09c.3.57.64 1.11 1 1.63a.06.06 0 0 0 .07.02 16.2 16.2 0 0 0 4.93-2.49.06.06 0 0 0 .02-.04c.42-4.3-.69-8.02-2.92-11.34a.05.05 0 0 0-.02-.02ZM8.68 14.735c-.97 0-1.77-.89-1.77-1.98s.78-1.99 1.77-1.99c1 0 1.79.9 1.77 1.99 0 1.09-.78 1.98-1.77 1.98Zm6.53 0c-.97 0-1.77-.89-1.77-1.98s.78-1.99 1.77-1.99c1 0 1.79.9 1.77 1.99 0 1.09-.77 1.98-1.77 1.98Z"/></svg></div>
+                          
+                        </div>
+                      </div>
+                      <div class="t-guild-sep"></div>
+                      
+                      <div class="listItem__650eb">
+                        <div class="item__58105"></div>
+                        <div class="wrapper__6e9f8 selected__6e9f8">
+                          <div class="childWrapper__6e9f8"><img src="lyghtning.gif" alt="" decoding="async"></div>
+                          
+                        </div>
+                      </div>
+                      
+                      <div class="listItem__650eb">
+                        
+                        <div class="wrapper__6e9f8">
+                          <div class="childWrapper__6e9f8">DV</div>
+                          <div class="mention__3b95d">3</div>
+                        </div>
+                      </div>
+                      
+                      <div class="listItem__650eb">
+                        
+                        <div class="wrapper__6e9f8">
+                          <div class="childWrapper__6e9f8">VC</div>
+                          
+                        </div>
+                      </div>
+                      
+                      <div class="listItem__650eb">
+                        
+                        <div class="wrapper__6e9f8">
+                          <div class="childWrapper__6e9f8">AE</div>
+                          
+                        </div>
+                      </div>
+                    </nav>
+
+                    <div class="t-side-main">
+                      <div class="animatedContainer_f37cb1">LYGHTNING</div>
+                      <ul class="sidebarList__5e434">
+                      <li class="wrapper__29444"><div class="name__29444">Information</div></li>
+                      
+              <li class="wrapper__2ea32 modeMuted__2ea32">
+                
+                <div class="link__2ea32">
+                  <svg class="icon__2ea32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg>
+                  <div class="name__2ea32">announcements</div>
+                </div>
+              </li>
+                      
+              <li class="wrapper__2ea32 modeMuted__2ea32">
+                
+                <div class="link__2ea32">
+                  <svg class="icon__2ea32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg>
+                  <div class="name__2ea32">hello-there</div>
+                </div>
+              </li>
+                      <li class="wrapper__29444"><div class="name__29444">Text</div></li>
+                      
+              <li class="wrapper__2ea32 modeSelected__2ea32">
+                
+                <div class="link__2ea32">
+                  <svg class="icon__2ea32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg>
+                  <div class="name__2ea32">english-chat</div>
+                </div>
+              </li>
+                      
+              <li class="wrapper__2ea32 modeUnreadImportant__2ea32">
+                <div class="unread__2ea32"></div>
+                <div class="link__2ea32">
+                  <svg class="icon__2ea32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg>
+                  <div class="name__2ea32">german-chat</div>
+                </div>
+              </li>
+                      
+              <li class="wrapper__2ea32">
+                
+                <div class="link__2ea32">
+                  <svg class="icon__2ea32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg>
+                  <div class="name__2ea32">tech-support</div>
+                </div>
+              </li>
+                      
+              <li class="wrapper__2ea32">
+                
+                <div class="link__2ea32">
+                  <svg class="icon__2ea32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg>
+                  <div class="name__2ea32">memes</div>
+                </div>
+              </li>
+                      <li class="wrapper__29444"><div class="name__29444">Voice</div></li>
+                      
+              <li class="wrapper__2ea32">
+                <div class="link__2ea32">
+                  <svg class="icon__2ea32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 4.2 6.8 8.3H3.4a1 1 0 0 0-1 1v5.4a1 1 0 0 0 1 1h3.4l4.7 4.1a.8.8 0 0 0 1.3-.6V4.8a.8.8 0 0 0-1.3-.6Zm4.6 3.1a1 1 0 0 0-1 1.7 4 4 0 0 1 0 6 1 1 0 0 0 1 1.7 6 6 0 0 0 0-9.4Z"/></svg>
+                  <div class="name__2ea32">Lounge</div>
+                </div>
+              </li>
+                      
+              <li class="wrapper__2ea32">
+                <div class="link__2ea32">
+                  <svg class="icon__2ea32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 4.2 6.8 8.3H3.4a1 1 0 0 0-1 1v5.4a1 1 0 0 0 1 1h3.4l4.7 4.1a.8.8 0 0 0 1.3-.6V4.8a.8.8 0 0 0-1.3-.6Zm4.6 3.1a1 1 0 0 0-1 1.7 4 4 0 0 1 0 6 1 1 0 0 0 1 1.7 6 6 0 0 0 0-9.4Z"/></svg>
+                  <div class="name__2ea32">Music</div>
+                </div>
+              </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <section class="panels__5e434">
+                    <span class="avatar_c19a55" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span>
+                    <span class="t-panel-who">
+                      <span class="t-panel-name">ΛΕYCEN</span>
+                      <span class="t-panel-status">Online</span>
+                    </span>
+                    <span class="t-panel-ctl"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14.5V12a8 8 0 0 1 16 0v2.5"/><rect x="2" y="13.5" width="4.5" height="7" rx="2.25"/><rect x="17.5" y="13.5" width="4.5" height="7" rx="2.25"/></svg></span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6.6"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2.6v2.8M12 18.6v2.8M21.4 12h-2.8M5.4 12H2.6M18.65 5.35 16.7 7.3M7.3 16.7l-1.95 1.95M18.65 18.65 16.7 16.7M7.3 7.3 5.35 5.35"/></svg></span></span>
+                  </section>
+                </div>
+
+                <div class="chat_f75fb0">
+                  <div class="chatHeaderBar_dc83f5"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>english-chat</span></div>
+                  <div class="chatContent_f75fb0">
+                    <div class="scroller_f35c3c">
+                      <div class="divider__908e2"><span class="content__908e2">Today</span></div>
+                      
+              <div class="message_d5deea message__5126c cozy_c19a55">
+                <span class="avatar_c19a55" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span>
+                <div class="t-msg-body">
+                  <div class="t-msg-head">
+                    <span class="username_c19a55">ΛΕYCEN</span>
+                    <span class="timestamp_c19a55"><time>21:02</time></span>
+                  </div>
+                  <div class="markup__75297">vote: is <span class="wrapper_f61d60">@Loan</span> allowed to pick the music again</div>
+                </div>
+              </div>
+                      
+              <div class="message_d5deea message__5126c cozy_c19a55">
+                <span class="avatar_c19a55" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span>
+                <div class="t-msg-body">
+                  <div class="t-msg-head">
+                    <span class="username_c19a55">TRAYVED</span>
+                    <span class="timestamp_c19a55"><time>21:02</time></span>
+                  </div>
+                  <div class="markup__75297">no</div><div class="reactions__23977">
+                          <div class="reaction__23977 reactionMe__23977">&#128077; <span class="reactionCount__23977">7</span></div>
+                          <div class="reaction__23977">&#128175; <span class="reactionCount__23977">4</span></div>
+                        </div>
+                </div>
+              </div>
+                      
+              <div class="message_d5deea message__5126c cozy_c19a55">
+                <span class="avatar_c19a55" style="--av:96">GI</span>
+                <div class="t-msg-body">
+                  <div class="t-msg-head">
+                    <span class="username_c19a55">Gianiii</span>
+                    <span class="timestamp_c19a55"><time>21:02</time></span>
+                  </div>
+                  <div class="markup__75297">no</div>
+                </div>
+              </div>
+                      
+              <div class="message_d5deea message__5126c cozy_c19a55">
+                <span class="avatar_c19a55" style="--av:-46"><img src="loan.png" alt="" loading="lazy" decoding="async"></span>
+                <div class="t-msg-body">
+                  <div class="t-msg-head">
+                    <span class="username_c19a55">Loan</span>
+                    <span class="timestamp_c19a55"><time>21:03</time></span>
+                  </div>
+                  <div class="markup__75297">you have not even heard the playlist<br><a class="t-link" href="#" onclick="return false">open.spotify.com/playlist/2Kv9Rm4Tjq</a></div><article class="embedFull__623de">
+                          <span class="t-embed-author">Playlist</span>
+                          <span class="t-embed-title">every song i know</span>
+                          <span class="t-embed-desc">1 track &middot; 3 hr 14 min</span>
+                        </article>
+                </div>
+              </div>
+                      
+              <div class="message_d5deea message__5126c cozy_c19a55">
+                <span class="avatar_c19a55" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span>
+                <div class="t-msg-body">
+                  <div class="t-msg-head">
+                    <span class="username_c19a55">TRAYVED</span>
+                    <span class="timestamp_c19a55"><time>21:03</time></span>
+                  </div>
+                  <div class="markup__75297">we heard it. that is the entire problem.</div>
+                </div>
+              </div>
+                    </div>
+                    <form class="form_f75fb0">
+                      <div class="channelTextArea__74017">Message #english-chat</div>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="members_c8ffbb">
+                  <ul>
+                    <li class="membersGroup_c8ffbb">Online &mdash; 3</li>
+                    
+              <li class="member__5d473">
+                <div class="memberInner__5d473">
+                  <span class="avatar_c19a55" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span><span class="name__91a9d">ΛΕYCEN</span>
+                </div>
+              </li>
+                    
+              <li class="member__5d473">
+                <div class="memberInner__5d473">
+                  <span class="avatar_c19a55" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span><span class="name__91a9d">TRAYVED</span>
+                </div>
+              </li>
+                    
+              <li class="member__5d473">
+                <div class="memberInner__5d473">
+                  <span class="avatar_c19a55" style="--av:-46"><img src="loan.png" alt="" loading="lazy" decoding="async"></span><span class="name__91a9d">Loan</span>
+                </div>
+              </li>
+                    <li class="membersGroup_c8ffbb">Offline &mdash; 2</li>
+                    
+              <li class="member__5d473">
+                <div class="memberInner__5d473 t-member-off">
+                  <span class="avatar_c19a55" style="--av:96">GI</span><span class="name__91a9d">Gianiii</span>
+                </div>
+              </li>
+                    
+              <li class="member__5d473">
+                <div class="memberInner__5d473 t-member-off">
+                  <span class="avatar_c19a55" style="--av:140"><img src="2_L_8.png" alt="" loading="lazy" decoding="async"></span><span class="name__91a9d">2_L_8</span>
+                </div>
+              </li>
+                  </ul>
+                </div>
+
+              </div>
             </div>
           </div>
-
-          <div class="panel">
-            <span class="av" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span>
-            <span class="who"><span class="n">ΛΕYCEN</span><span class="s">Online</span></span>
-            <span class="ctl"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14.5V12a8 8 0 0 1 16 0v2.5"/><rect x="2" y="13.5" width="4.5" height="7" rx="2.25"/><rect x="17.5" y="13.5" width="4.5" height="7" rx="2.25"/></svg></span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6.6"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2.6v2.8M12 18.6v2.8M21.4 12h-2.8M5.4 12H2.6M18.65 5.35 16.7 7.3M7.3 16.7l-1.95 1.95M18.65 18.65 16.7 16.7M7.3 7.3 5.35 5.35"/></svg></span></span>
-          </div>
-        </div>
-
-        <div class="chat" aria-hidden="true">
-          <div class="head"><svg class="i" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.5 3 9.6 8H5.2l-.35 2H9.25l-.7 4H4.1l-.35 2h4.45l-.9 5h2l.9-5h4l-.9 5h2l.9-5h4.4l.35-2h-4.4l.7-4h4.45l.35-2h-4.45l.9-5h-2l-.9 5h-4l.9-5h-2Zm.55 7h4l-.7 4h-4l.7-4Z"/></svg><span>english-chat</span></div>
-          <div class="log">
-            <div class="day">Today</div>
-            
-            <div class="msg">
-              <span class="av" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span>
-              <div class="body">
-                <div class="line"><span class="who">ΛΕYCEN</span><time>21:02</time></div>
-                <p>vote: is <span class="at">@Loan</span> allowed to pick the music again</p>
-              </div>
-            </div>
-            
-            <div class="msg">
-              <span class="av" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span>
-              <div class="body">
-                <div class="line"><span class="who">TRAYVED</span><time>21:02</time></div>
-                <p>no</p><div class="reacts"><span class="me">&#128077; 7</span><span>&#128175; 4</span></div>
-              </div>
-            </div>
-            
-            <div class="msg">
-              <span class="av" style="--av:96">GI</span>
-              <div class="body">
-                <div class="line"><span class="who">Gianiii</span><time>21:02</time></div>
-                <p>no</p>
-              </div>
-            </div>
-            
-            <div class="msg">
-              <span class="av" style="--av:-46"><img src="loan.png" alt="" loading="lazy" decoding="async"></span>
-              <div class="body">
-                <div class="line"><span class="who">Loan</span><time>21:03</time></div>
-                <p>you have not even heard the playlist<br><span class="lnk">open.spotify.com/playlist/2Kv9Rm4Tjq</span></p><div class="embed"><span class="e-author">Playlist</span><span class="e-title">every song i know</span><span class="e-desc">1 track &middot; 3 hr 14 min</span></div>
-              </div>
-            </div>
-            
-            <div class="msg">
-              <span class="av" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span>
-              <div class="body">
-                <div class="line"><span class="who">TRAYVED</span><time>21:03</time></div>
-                <p>we heard it. that is the entire problem.</p>
-              </div>
-            </div>
-          </div>
-          <div class="composer">Message #english-chat</div>
-        </div>
-
-        <div class="members" aria-hidden="true">
-          <ul>
-            <li class="cat">Online &mdash; 3</li>
-            <li class="mem on"><span class="av" style="--av:0"><img src="aeycen.png" alt="" loading="lazy" decoding="async"></span><span>ΛΕYCEN</span></li>
-            <li class="mem "><span class="av" style="--av:52"><img src="trayved.png" alt="" loading="lazy" decoding="async"></span><span>TRAYVED</span></li>
-            <li class="mem "><span class="av" style="--av:-46"><img src="loan.png" alt="" loading="lazy" decoding="async"></span><span>Loan</span></li>
-            <li class="cat">Offline &mdash; 2</li>
-            <li class="mem off"><span class="av" style="--av:96">GI</span><span>Gianiii</span></li>
-            <li class="mem off"><span class="av" style="--av:140"><img src="2_L_8.png" alt="" loading="lazy" decoding="async"></span><span>2_L_8</span></li>
-          </ul>
-        </div>
+        </template>
       </div>
     </div>
 
