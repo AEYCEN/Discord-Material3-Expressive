@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Material 3 Expressive for Discord</title>
+<meta name="description" content="Material-You-inspired dark theme: primary-tinted surface tiers, three colour roles, mono for identifiers.">
+<meta property="og:title" content="Material 3 Expressive for Discord">
+<meta property="og:description" content="Material-You-inspired dark theme: primary-tinted surface tiers, three colour roles, mono for identifiers.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aeycen.github.io/Discord-Material3-Expressive/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2300242e'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23b6ecff'/%3E%3C/svg%3E">
+<style>
+:root {
+  /* Seed hue: shifts the tone of every surface and the primary colour at once */
+  --t-hue: -187;
+  /* Secondary roles derived from the seed (Material You):
+     Secondary = same hue, much less chroma (differs by saturation, not tone).
+     Tertiary = seed + 25° (analogous, directly adjacent) with medium chroma.
+     Offsets can be changed freely. */
+  --t-hue-secondary: var(--t-hue);
+  --t-hue-tertiary: calc(var(--t-hue) + 25);
+  /* ---- Background image (optional) ----
+     Image behind all surfaces. Lower the surface opacity to let it show through:
+     0.72–0.85 looks like tinted glass, 1 = image only visible in the window frame. */
+  --t-background-image: none; /* e.g. url("https://…/image.jpg") – only "raw.githubusercontent.com", "*.github.io" & "i.imgur.com" are guaranteed to work */
+  --t-background-position: center;
+  --t-background-size: cover;
+  --t-background-blur: 0px; /* e.g. 12px for a blurred image */
+  --t-background-dim: 0.55; /* 0 = no dimming, 1 = fully darkened */
+  --t-surface-alpha: 1; /* Opacity of surfaces 1–3. Set below 1 when using a background image */
+  /* ---- Monogram (optional) ----
+     Your name as a decorative element in the chat background. Leave empty to hide.
+     Anurati must be installed locally; otherwise Syncopate/Michroma is used. */
+  --t-monogram: "aeycen"; /* e.g. your username – in quotes */
+  --t-monogram-font: "Anurati", "Syncopate", "Michroma", sans-serif;
+  --t-monogram-size: 96px;
+  --t-monogram-opacity: 0.07; /* 0.04 very subtle, 0.12 clearly visible */
+  --t-monogram-spacing: 0.25em;
+  --t-monogram-x: flex-end; /* flex-start = left, center, flex-end = right */
+  --t-monogram-y: flex-end; /* flex-start = top, center, flex-end = bottom */
+  --t-monogram-fluid: 11cqw; /* scales with chat width; --t-monogram-size stays the upper limit */
+  /* Surface ladder, tinted in the seed hue (M3 "surface tint") */
+  --t-surface-0: hsl(var(--t-hue) 22% 6%); /* Window frame, lowest tier */
+  --t-surface-1: hsl(var(--t-hue) 20% 9% / var(--t-surface-alpha)); /* Server list, chat */
+  --t-surface-2: hsl(var(--t-hue) 18% 12% / var(--t-surface-alpha)); /* Channel sidebar, members */
+  --t-surface-3: hsl(var(--t-hue) 16% 16% / var(--t-surface-alpha)); /* Cards, inputs, panels */
+  --t-surface-4: hsl(var(--t-hue) 15% 20%); /* Popouts, menus, tooltips */
+  --t-surface-5: hsl(var(--t-hue) 14% 25%); /* Hover on tier 4 */
+  /* Text */
+  --t-text-high: hsl(var(--t-hue) 30% 93%);
+  --t-text-mid: hsl(var(--t-hue) 18% 72%);
+  --t-text-low: hsl(var(--t-hue) 12% 50%);
+  /* Role 1 – Primary: selection, links, buttons, focus */
+  --t-primary: hsl(var(--t-hue) 100% 86%);
+  --t-on-primary: hsl(var(--t-hue) 55% 18%);
+  --t-primary-container: hsl(var(--t-hue) 42% 38%);
+  --t-on-primary-container: hsl(var(--t-hue) 100% 94%);
+  /* Role 2 – Secondary: categories, voice, speaking, "connected" */
+  --t-secondary: hsl(var(--t-hue-secondary) 26% 74%);
+  --t-secondary-container: hsl(var(--t-hue-secondary) 22% 24%);
+  --t-on-secondary-container: hsl(var(--t-hue-secondary) 40% 90%);
+  /* Role 3 – Tertiary: mentions & unread only */
+  --t-tertiary: hsl(var(--t-hue-tertiary) 60% 80%);
+  --t-on-tertiary: hsl(var(--t-hue-tertiary) 50% 14%);
+  --t-tertiary-container: hsl(var(--t-hue-tertiary) 34% 32%);
+  --t-on-tertiary-container: hsl(var(--t-hue-tertiary) 70% 93%);
+  /* Role colours are mapped to readable pastel tones while keeping the hue.
+     contrast < 1 pulls dark and light colours towards the middle, brightness lifts everything,
+     saturate restores the tone. rgb(0,40,59) → approx. rgb(95,150,170).
+     To disable: --t-role-contrast: 1; --t-role-lift: 1; --t-role-saturate: 1; */
+  --t-role-contrast: 0.5;
+  --t-role-lift: 1.7;
+  --t-role-saturate: 1.5;
+  /* Status */
+  --t-success: hsl(150 45% 66%);
+  --t-warning: hsl(42 85% 68%);
+  --t-danger: hsl(2 90% 74%);
+  --t-streaming: hsl(268 70% 76%);
+  /* Shape (Expressive = radii by hierarchy, not one value for everything) */
+  --t-radius-container: 20px;
+  --t-radius-card: 14px;
+  --t-radius-input: 12px;
+  --t-radius-code: 8px;
+  --t-radius-pill: 999px;
+  /* Typography */
+  --t-font-ui: "gg sans", "Inter", "Segoe UI", system-ui, sans-serif;
+  --t-font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, "gg mono", monospace;
+  /* Motion: two springs – snappy (tight, small elements), bouncy (soft, containers) */
+  --t-spring-snappy: linear(
+          0, 0.38 8%, 0.72 16%, 0.96 24%, 1.09 33%, 1.11 40%, 1.07 50%,
+          1.02 60%, 0.99 70%, 1
+  );
+  --t-spring-bouncy: linear(
+          0, 0.22 6%, 0.58 13%, 0.92 21%, 1.14 30%, 1.2 37%, 1.14 46%,
+          1.04 56%, 0.98 66%, 0.99 78%, 1
+  );
+  --t-dur-fast: 220ms;
+  --t-dur-base: 380ms;
+  --t-dur-slow: 560ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: clamp(24px, 6vw, 72px) clamp(20px, 5vw, 32px);
+  display: flex;
+  justify-content: center;
+  font-family: var(--t-font-ui);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--t-text-mid);
+  background:
+    radial-gradient(1200px 700px at -10% -10%, hsl(var(--t-hue) 60% 50% / 0.18), transparent 60%),
+    radial-gradient(900px 600px at 110% 110%, hsl(var(--t-hue) 50% 45% / 0.06), transparent 60%),
+    var(--t-surface-0);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+main { width: 100%; max-width: 640px; }
+
+header { margin-bottom: 40px; }
+
+h1 {
+  margin: 0 0 4px;
+  font-size: clamp(30px, 7vw, 42px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--t-text-high);
+}
+
+.version {
+  display: inline-block;
+  margin-bottom: 18px;
+  padding: 2px 10px;
+  border-radius: var(--t-radius-pill);
+  background: var(--t-primary-container);
+  color: var(--t-on-primary-container);
+  font-family: var(--t-font-mono);
+  font-size: 13px;
+}
+
+.lede { margin: 0; max-width: 52ch; }
+
+section {
+  margin-bottom: 20px;
+  padding: clamp(20px, 4vw, 28px);
+  border-radius: var(--t-radius-container);
+  background: var(--t-surface-2);
+}
+
+h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--t-text-high);
+}
+
+h2 + p { margin: 0 0 18px; font-size: 15px; }
+
+ol { margin: 0 0 18px; padding-left: 1.25em; }
+li { margin-bottom: 4px; }
+li::marker { color: var(--t-tertiary); }
+
+.url {
+  display: flex;
+  /* center, not stretch: stretching would grow the button to the height of the
+     wrapped URL, and its resting radius is half of a fixed button height */
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.url code {
+  flex: 1 1 300px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--t-radius-input);
+  background: var(--t-surface-0);
+  color: var(--t-primary);
+  font-family: var(--t-font-mono);
+  font-size: 14px;
+  line-height: 1.5;
+  /* wrap rather than scroll: this is the one string the visitor came to copy,
+     and a horizontal scrollbar hides half of it */
+  overflow-wrap: anywhere;
+}
+
+/* Pill at rest, rounded rectangle on hover, spring on both - the theme's own
+   button gesture.
+
+   The resting radius is written as half the element's own height rather than
+   --t-radius-pill. 1lh is the line box and there is no vertical border, so
+   0.5lh + padding-y is exactly half the used height - a true pill derived from
+   the element, with no hard-coded height to keep in sync with the font size.
+   (lh resolves at style resolution, so editing font-size here is picked up;
+   it does not re-resolve if something changes font-size at runtime.)
+
+   That precision is what makes the spring work. --t-spring-bouncy overshoots to
+   1.20, so from 999px the curve lands at 999 + (12-999)*1.20 = -185px, clamped
+   by the browser to 0 - a hard rectangle for a quarter of the transition. And
+   every radius at or above half the height draws the same pill, so 999 -> 12
+   would spend ~98% of its range on a shape nobody can see anyway.
+   From the real half-height the same spring dips just past 12px and settles
+   back onto it.
+
+   The radius alone cannot carry the gesture, though: it only has ~9px of travel
+   here, of which the overshoot is 1.8px - correct, but below the threshold
+   where anyone reads it as a bounce. So hover also scales the button, on the
+   same spring. Transform has no such ceiling, and 1.06 overshooting to ~1.072
+   is what actually makes the spring visible. Press then sinks to 0.96. */
+button, .btn {
+  --btn-pad-y: 12px;
+  flex: 0 0 auto;
+  padding: var(--btn-pad-y) 20px;
+  border: none;
+  border-radius: calc(0.5lh + var(--btn-pad-y));
+  background: var(--t-primary);
+  color: var(--t-on-primary);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  /* keeps the button one line tall, so 0.5lh stays half of it */
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-radius var(--t-dur-base) var(--t-spring-bouncy),
+              transform var(--t-dur-base) var(--t-spring-bouncy),
+              background-color var(--t-dur-fast) ease;
+}
+button:hover, .btn:hover {
+  border-radius: var(--t-radius-input);
+  transform: scale(1.06);
+}
+/* after :hover, so the press wins while the pointer is still over the button */
+button:active, .btn:active { transform: scale(0.96); transition-duration: 80ms; }
+button:focus-visible, .btn:focus-visible,
+a:focus-visible { outline: 2px solid var(--t-primary); outline-offset: 3px; }
+
+.btn.secondary { background: var(--t-surface-4); color: var(--t-text-high); }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+a { color: var(--t-primary); }
+
+.author {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.author img {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  padding: 3px;
+  border-radius: var(--t-radius-pill);
+  /* the mark is a transparent PNG whose darkest teal sits close to surface-2;
+     a lighter plate keeps that part of it legible */
+  background: var(--t-surface-5);
+  object-fit: contain;
+}
+
+.author .who { flex: 1 1 160px; min-width: 0; }
+
+.author .name {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--t-text-high);
+}
+
+.author .role { display: block; font-size: 14px; color: var(--t-text-low); }
+
+footer {
+  margin-top: 36px;
+  font-size: 14px;
+  color: var(--t-text-low);
+}
+footer a { color: var(--t-text-mid); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Material 3 Expressive</h1>
+    <span class="version">v1.0.0</span>
+    <p class="lede">Material-You-inspired dark theme: primary-tinted surface tiers, three colour roles, mono for identifiers.</p>
+  </header>
+
+  <section>
+    <h2>Install</h2>
+    <p>Vencord &rarr; Settings &rarr; Themes &rarr; Online Themes. Paste this URL:</p>
+    <div class="url">
+      <code id="url">https://aeycen.github.io/Discord-Material3-Expressive/main.css</code>
+      <button id="copy" type="button" data-url="https://aeycen.github.io/Discord-Material3-Expressive/main.css">Copy</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Customise</h2>
+    <p>
+      One seed hue drives every surface and accent. To change it, use the QuickCSS
+      variant instead - it imports the same stylesheet and exposes every
+      <code>--t-*</code> token with its default. Delete a line to fall back to that default.
+    </p>
+    <div class="actions">
+      <a class="btn secondary" href="https://raw.githubusercontent.com/AEYCEN/Discord-Material3-Expressive/main/Material-3-Expressive-v1-Vencord.css">Get the QuickCSS file</a>
+      <a class="btn secondary" href="https://github.com/AEYCEN/Discord-Material3-Expressive/blob/main/Material-3-Expressive-v1-Vencord.css">View on GitHub</a>
+    </div>
+  </section>
+
+  <section class="author">
+    <img src="aeycen.png" alt="" width="56" height="56" decoding="async">
+    <div class="who">
+      <span class="name">AEYCEN</span>
+      <span class="role">Design and code</span>
+    </div>
+    <a class="btn secondary" href="https://github.com/AEYCEN">GitHub</a>
+  </section>
+
+  <footer>
+    <a href="https://github.com/AEYCEN/Discord-Material3-Expressive">Source</a> &middot;
+    Apache-2.0 &middot;
+    Class map derived from <a href="https://github.com/ClearVision/ClearVision-v7">ClearVision v7</a>
+  </footer>
+</main>
+<script>
+document.getElementById('copy').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  try {
+    await navigator.clipboard.writeText(btn.dataset.url);
+    btn.textContent = 'Copied';
+  } catch {
+    // clipboard blocked (insecure context, permissions): select the text instead
+    const r = document.createRange();
+    r.selectNodeContents(document.getElementById('url'));
+    const s = getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+    btn.textContent = 'Select all + copy';
+  }
+  setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+});
+</script>
+</body>
+</html>
