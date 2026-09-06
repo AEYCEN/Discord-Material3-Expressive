@@ -776,7 +776,7 @@ footer a { color: var(--t-text-mid); }
                         '21:03',
                         // the link is what makes the embed below it legitimate - Discord
                         // unfurls a card because a URL was posted, not on its own
-                        'you have not even heard the playlist<br><a class="t-link" href="#" onclick="return false">open.spotify.com/playlist/2Kv9Rm4Tjq</a>',
+                        'you have not even heard the playlist<br><a class="t-link" href="https://open.spotify.com/playlist/5EIjIqnxsxQrlms9XSWhEs" target="_blank">open.spotify.com/playlist/5EIjIqnxsxQrlms9XSWhEs</a>',
                         `<article class="${k('embed')}">
                           <span class="t-embed-author">Playlist</span>
                           <span class="t-embed-title">every song i know</span>
