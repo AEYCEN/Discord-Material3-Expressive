@@ -11,6 +11,7 @@
     "build:css": "sass src/main.scss build/main.css --style=expanded --no-source-map --no-charset",
     "build:min": "lightningcss --minify --targets \"chrome >= 120\" build/main.css -o public/main.css",
     "build:dist": "sass dist:. --style=expanded --no-source-map --no-charset",
+    "build:local": "npm run build:css && npm run build:dist && node tools/build-local.mjs",
     "test": "sass src/main.scss test/main.css --style=expanded --no-source-map --no-charset",
     "watch": "sass src/main.scss build/main.css --style=expanded --no-source-map --no-charset --watch",
     "classes:check": "node tools/classes-check.mjs",

@@ -369,6 +369,14 @@ $classes: (
     'stackedBars': 'stackedBars__74017',
     'themedBackground': 'themedBackground__74017',
     'toolbar': 'toolbar_bba883',
+    'typing': 'typing_b88801',
+    'typingBase': 'base_b88801',
+    'typingDot': 'dot_b88801',  // LOCAL: no upstream entry, maintain by hand
+    'typingDots': 'dots__5ad89',
+    'typingDotsSpans': 'dots_b88801',  // LOCAL: no upstream entry, maintain by hand
+    'typingDotsThemed': 'themed__5ad89',
+    'typingRow': 'typingDots_b88801',  // LOCAL: no upstream entry, maintain by hand
+    'typingText': 'text_b88801',
     'upload': 'upload_aa605f',
   ),
   'checkbox': (
@@ -441,10 +449,12 @@ $classes: (
     ),
   ),
   'header': (
+    'addFriend': 'addFriend__133bf',
     'iconWrapper': ('iconWrapper_ef6e3a' 'iconWrapper__9293f'),  // UNION: second class is upstream ClearVision, kept for build drift
     'searchAnswer': 'searchAnswer_bd8186',
     'searchBar': 'searchBar__97492',
     'searchFilter': 'searchFilter_bd8186',
+    'tabBar': 'tabBar__133bf',
   ),
   'input': (
     'wrapper': 'wrapper__72c38',
@@ -595,6 +605,12 @@ $classes: (
   ),
   'profile': (
     'inner': 'inner_c0bea0',
+    'modal': (
+      'pendingToolbar': 'pendingChangesToolbar__9c3be',  // LOCAL: no upstream entry, maintain by hand
+      'toolbarActions': 'actions__2dc08',  // LOCAL: no upstream entry, maintain by hand
+      'toolbarContent': 'content__2dc08',  // LOCAL: no upstream entry, maintain by hand
+      'toolbarText': 'noticeText__2dc08',  // LOCAL: no upstream entry, maintain by hand
+    ),
     'outer': 'outer_c0bea0',
     'overlay': 'overlay_c0bea0',
     'status': (
@@ -694,16 +710,33 @@ $classes: (
       ),
     ),
   ),
+  'radio': (
+    'base': 'outerRadioBase__64e61',
+    'dot': 'innerDotRadio__64e61',
+    'fill': 'outerRadioFill__64e61',
+    'groupOption': 'radioGroupOption__64e61',
+    'indicator': 'radioIndicator__64e61',
+    'label': 'label__64e61',
+    'standaloneIndicator': 'standaloneRadioIndicator__64e61',
+  ),
   'slider': (
+    'bar': 'bar_a562c8',
     'barFill': 'barFill_a562c8',
     'grabber': 'grabber_a562c8',
+    'mark': 'mark_a562c8',
+    'markDash': 'markDash_a562c8',
+    'menuPopout': 'slider__65039',  // LOCAL: no upstream entry, maintain by hand
+    'mini': 'mini_a562c8',
     'slider': 'slider_a562c8',
+    'track': 'track_a562c8',
   ),
   'switch': (
+    'container': 'container_a28278',
     'indicator': 'switchIndicator_a28278',
-    'slider': 'slider_a28278',  // LOCAL: no upstream entry, maintain by hand
+    'thumb': 'thumb_a28278',
   ),
   'tab': (
+    'disabled': 'disabled_aa8da2',
     'item': 'item_aa8da2',
     'selected': 'selected_aa8da2',
     'side': 'side_aa8da2',

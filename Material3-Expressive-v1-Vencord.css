@@ -30,7 +30,7 @@
      Your name as a decorative element in the chat background. Set to "" to hide.
      Uses Anurati if installed locally, otherwise Syncopate/Michroma (loaded from Google Fonts).
      Hidden automatically when the chat is narrower than 420px. */
-  --t-monogram: "aeycen"; /* text in quotes [default: "aeycen"] */
+  --t-monogram: ""; /* text in quotes */
   --t-monogram-font: "Anurati", "Syncopate", "Michroma", sans-serif; /* [default: "Anurati", "Syncopate", "Michroma", sans-serif] */
   --t-monogram-size: 96px; /* maximum size [default: 96px] */
   --t-monogram-fluid: 11cqw; /* scales with chat width, --t-monogram-size stays the cap [default: 11cqw] */

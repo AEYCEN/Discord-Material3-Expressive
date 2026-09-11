@@ -18,3 +18,48 @@
   }
   @return string.unquote('hsl(#{$h} #{$s} #{$l} / #{$a})');
 }
+
+/// M3 state layer: a translucent overlay in the element's own "on-" colour,
+/// 8 % on hover and 12 % while pressed.
+///
+/// Most of the theme gets its state layer for free from --background-mod-*
+/// (see main.scss section 2), which both our rules and Discord's own listen to.
+/// This is for the two cases that cannot: elements with no background to tint
+/// (icon buttons), and filled containers where the layer has to be the on-colour
+/// rather than the primary.
+///
+/// The colour is currentColor on purpose. On a brand-filled button that is
+/// already --t-on-primary; on a selected channel pill it is
+/// --t-on-primary-container. One mixin, right colour everywhere, no argument.
+///
+/// Two things this deliberately does NOT set, both of which are the caller's job:
+///   - `position`. Several targets are already positioned by Discord, and forcing
+///     `relative` would reparent their absolutely-positioned children.
+///   - `overflow: hidden`. Clipping the guild rail cut the mention badge off the
+///     tile corner (see src/preview/index.scss). `border-radius: inherit` on the
+///     layer does the same job without clipping. That drops the expanding circle,
+///     which is correct: M3 Expressive replaced the Material 2 ripple with a flat
+///     state layer.
+///
+/// @param {Number} $hover opacity on hover
+/// @param {Number} $press opacity while pressed
+@mixin state-layer($hover: 0.08, $press: 0.12) {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--t-dur-fast) ease;
+  }
+
+  &:hover::after {
+    opacity: $hover;
+  }
+
+  &:active::after {
+    opacity: $press;
+  }
+}
