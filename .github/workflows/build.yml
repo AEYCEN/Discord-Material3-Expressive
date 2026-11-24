@@ -42,7 +42,9 @@ jobs:
       # its CSP allowlist - github.io is on it. Adding `cname:` here would also
       # re-attach the domain on the next push, since this deploy force-pushes.
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        # workflow_dispatch included: sync-classes.yml starts this run after it
+        # pushes, because its own GITHUB_TOKEN push does not trigger one.
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

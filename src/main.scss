@@ -1037,10 +1037,28 @@ code {
 #{c(modals body)} {
     background: transparent;
 }
+/* Stream picker anchors. ClearVision does not map this dialog, so its entries
+   are prefix matches (`~name` in the class map) and survive every rotation - but
+   root, header, footer and summary are names half of Discord uses. Each is
+   therefore tied to the one structure only this dialog has, documented below:
+     root > footer > footerContent > (summaryRoot > summary) + rightButtonGroup
+   The anchors sit in :where(), so every selector keeps the specificity of the
+   single class it replaces. :has() cannot nest, which is why the chain is
+   spelled out wherever an anchor would end up inside another :has(). */
+$sp-group: c(modals streamPicker rightButtonGroup);
+$sp-chain: '#{c(modals streamPicker footer)} > #{c(modals streamPicker footerContent)} > #{$sp-group}';
+$sp-root: '#{c(modals streamPicker root)}:where(:has(> #{$sp-chain}))';
+$sp-header: ':where(#{$sp-root}) > #{c(modals streamPicker header)}';
+$sp-footer: ':where(#{$sp-root}) > #{c(modals streamPicker footer)}';
+$sp-footer-content: '#{c(modals streamPicker footerContent)}:where(:has(> #{$sp-group}))';
+$sp-summary-root: ':where(#{$sp-footer-content}) > #{c(modals streamPicker summaryRoot)}';
+$sp-summary: ':where(#{$sp-summary-root}) > #{c(modals streamPicker summary)}';
+$sp-ellipsis: ':where(#{$sp-summary-root}) #{c(modals streamPicker ellipsis)}';
+
 /* Modal footer (generic): tone, separator, container rounding */
 #{c(modals footer)},
 [role="dialog"] [class*="footer_"],
-#{c(modals streamPicker footer)} {
+#{$sp-footer} {
     background: var(--t-surface-3);
     border-top: 1px solid var(--border-faint);
     border-radius: 0 0 var(--t-radius-container) var(--t-radius-container);
@@ -1057,24 +1075,24 @@ code {
 /* --- Profile editor: the "save your changes" bar ---
    DOM, from a live client:
      .root__49fc1                          <- modal root, position: relative
-       .pendingChangesToolbar__9c3be       <- absolute, top: calc(100% + 24px):
+       .pendingChangesToolbar_s3DB6Y       <- absolute, top: calc(100% + 24px):
                                               hangs 24px BELOW the modal, z 7
          div[style="opacity: …; transform: …"]  <- Discord's own fly-in, inline
-           footer.content__2dc08           <- the bar
-             .noticeText__2dc08 + .actions__2dc08 > two mana buttons
+           footer.content_tu5953           <- the bar
+             .noticeText_tu5953 + .actions_tu5953 > two mana buttons
    The rule above rounds every modal by clipping its overflow, and that clipped
    this bar out of existence: it lies outside the root's box by design. This
    modal rounds its parts itself (layout container, profile card and editing
    panel all carry their own radius), so releasing the clip costs nothing. Done
    with :has() rather than for the modal as a whole because the toolbar exists
    only while there are unsaved changes.
-   Matched by attribute, not through c(): this rule decides whether the user can
-   save or leave the editor at all. When the hash rotated, the fallback root
-   selector above kept clipping while the exception stopped matching, and the
-   bar vanished with no way out of the modal. The readable class prefix survives
-   rotations; the hash does not. */
-#{c(modals root)}:has([class*="pendingChangesToolbar_"]),
-[role="dialog"] > [class*="root_"]:has([class*="pendingChangesToolbar_"]) {
+   This rule decides whether the user can save or leave the editor at all. When
+   it matched by hash, a rotation left the fallback root selector above clipping
+   while the exception stopped matching, and the bar vanished with no way out of
+   the modal. The toolbar entries are prefix matches now and survive rotations;
+   content and noticeText are generic names, so they only count under it. */
+#{c(modals root)}:has(#{c(profile modal pendingToolbar)}),
+[role="dialog"] > [class*="root_"]:has(#{c(profile modal pendingToolbar)}) {
     overflow: visible;
 }
 /* The bar: an M3 floating toolbar - high surface, pill, elevation, no outline.
@@ -1082,7 +1100,7 @@ code {
    user tries to close with unsaved changes; the button hover scale needs that
    room, so the tint takes the radius instead. The buttons keep the theme's
    button rules, so the bar grows to fit the 40px height. */
-#{c(profile modal toolbarContent)} {
+#{c(profile modal pendingToolbar)} #{c(profile modal toolbarContent)} {
     background-color: var(--t-surface-4);
     border: none;
     border-radius: var(--t-radius-pill);
@@ -1091,21 +1109,21 @@ code {
     padding: 8px 8px 8px 20px;
     gap: 24px;
 }
-#{c(profile modal toolbarContent)}::before {
+#{c(profile modal pendingToolbar)} #{c(profile modal toolbarContent)}::before {
     border-radius: inherit;
 }
-#{c(profile modal toolbarText)} {
+#{c(profile modal pendingToolbar)} #{c(profile modal toolbarText)} {
     color: var(--t-text-high);
 }
 
 /* Stream picker: move the modal padding from the container to header/content
    so the footer runs to the edge */
-#{c(modals rootContainer)}:has(> #{c(modals streamPicker root)}) {
+#{c(modals root)}:has(> #{c(modals streamPicker root)} > #{$sp-chain}) {
     padding: 0;
     overflow: hidden;
     border-radius: var(--t-radius-container);
 }
-#{c(modals streamPicker root)} {
+#{$sp-root} {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -1113,26 +1131,26 @@ code {
     border-radius: inherit;
     overflow: hidden;
 }
-#{c(modals streamPicker header)} {
+#{$sp-header} {
     padding: 24px 24px 0;
 }
-#{c(modals streamPicker root)} > :not(#{c(modals streamPicker header)}, #{c(modals streamPicker footer)}) {
+#{$sp-root} > :not(#{c(modals streamPicker header)}, #{c(modals streamPicker footer)}) {
     padding-left: 24px;
     padding-right: 24px;
     min-height: 0;
     flex: 1 1 auto;
 }
-#{c(modals streamPicker footer)} {
+#{$sp-footer} {
     flex: 0 0 auto;
     margin-top: 0;
 }
 
 /* Stream picker footer, structure:
-   .footer_a55fdc > .footerContent_a55fdc > (.root_e529a0 > .summary_e529a0) + .rightButtonGroup_a55fdc */
-#{c(modals streamPicker footer)} {
+   .footer_oszuaw > .footerContent_oszuaw > (.root_kLiT4t > .summary_kLiT4t) + .rightButtonGroup_oszuaw */
+#{$sp-footer} {
     padding: 0;
 }
-#{c(modals streamPicker footerContent)} {
+#{$sp-footer-content} {
     display: flex;
     flex-flow: row nowrap;
     align-items: center;
@@ -1143,14 +1161,14 @@ code {
     width: 100%;
     box-sizing: border-box;
 }
-#{c(modals streamPicker summaryRoot)} {
+#{$sp-summary-root} {
     flex: 1 1 auto;
     min-width: 0;
     width: auto;
     display: flex;
     align-items: center;
 }
-#{c(modals streamPicker summary)} {
+#{$sp-summary} {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1171,7 +1189,7 @@ code {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-#{c(modals streamPicker ellipsis)} {
+#{$sp-ellipsis} {
     opacity: 0.6;
 }
 #{c(modals streamPicker rightButtonGroup)} {
@@ -2662,7 +2680,7 @@ $guild-press: '#{c(guildList listItem)}:has(#{c(guildList iconWrapper)}:active)'
 
 /* Input search & channel search widen on focus */
 #{c(header searchBar)},
-#{c(searchbar channelSearch)} {
+#{c(searchbar channelSearch)}:where(:has(> * > #{c(header searchBar)})) {
     transition: width var(--t-dur-base) var(--t-spring-snappy), background-color var(--t-dur-fast) ease, box-shadow var(--t-dur-base) var(--t-spring-snappy);
 }
 #{c(header searchBar)}:focus-within {

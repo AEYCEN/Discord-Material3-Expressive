@@ -1,0 +1,83 @@
+name: Sync classes
+
+# Discord rotates its hashed class names; ClearVision maintains a map of them.
+# Once a day this pulls ClearVision's current values into src/backend/_classes.scss
+# (the same as `npm run classes:sync`), checks that the theme still builds, and
+# commits the result to main. UNION / LOCAL / prefix entries are never touched.
+#
+# A push made with GITHUB_TOKEN does not trigger other workflows - except
+# workflow_dispatch. So the deploy is started explicitly at the end, through the
+# one deploy path in build.yml, instead of duplicating it here.
+#
+# Public repositories pay nothing for Actions minutes. A run with nothing to sync
+# needs only Node and one download and is done in seconds; npm ci and the build
+# run only when something actually moved. GitHub disables scheduled workflows
+# after 60 days without repository activity and sends a mail first - re-enable
+# it under Actions if that happens.
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sync-classes
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync class map from ClearVision
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply upstream class changes
+        run: node tools/classes-check.mjs --apply
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- src/backend/_classes.scss; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Class map already matches ClearVision."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- src/backend/_classes.scss
+          fi
+
+      - name: Install dependencies
+        if: steps.diff.outputs.changed == 'true'
+        run: npm ci
+
+      # Sass fails on a class path that does not resolve, and the distributable
+      # must stay identical - a sync only changes values, never the @import.
+      - name: Build
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          npm run build
+          git diff --exit-code -- Material3-Expressive-v1-Vencord.css
+
+      - name: Commit and push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/backend/_classes.scss
+          git commit -m "sync class hashes from ClearVision"
+          git push origin HEAD:main
+
+      - name: Deploy
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build.yml --ref main

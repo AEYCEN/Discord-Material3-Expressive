@@ -69,6 +69,15 @@
   @if string.slice($class, 1, 1) == '.' {
     @error "Dot at start of string within list. Please fix and try again.";
   }
+  // Not from ClearVision. `~name` matches any class that is `name_` plus a
+  // hash, so it survives every rotation. A class attribute is space-separated,
+  // hence two forms: the first class in the list, or one after a space. Same
+  // specificity as a class selector. Only for names distinctive enough not to
+  // hit other components - see the CLASS MAP header below.
+  @if string.slice($class, 1, 1) == '~' {
+    $name: string.slice($class, 2, -1);
+    @return ':is([class^="#{$name}_"], [class*=" #{$name}_"])';
+  }
   @if string.slice($class, 1, 6) == 'alias ' {
     // force error on already tested aliases to prevent loops
     @if $alias == true {
@@ -147,6 +156,9 @@
   }
   @if string.slice($class, 1, 6) == 'alias ' {
     @return ''; // ignore all aliases
+  }
+  @if string.slice($class, 1, 1) == '~' {
+    @return ''; // prefix matches are not class names
   }
   @if string.slice($class, 1, 1) == '#' {
     @return $class;
@@ -260,6 +272,10 @@
 /// where old and new build are live at the same time.
 /// Prefix a value with ! to have the build print every place it is used,
 /// or with @ to mark it deprecated.
+/// A value `~name` (not from ClearVision) matches the readable part of the
+/// class only, whatever hash follows it, and never needs updating. Use it for
+/// entries ClearVision does not carry; a generic name (root, footer, label)
+/// must then be anchored where it is used - see the stream picker in main.scss.
 ///
 /// Entries without a marker mirror ClearVision v7's map (Apache-2.0) and can be
 /// resynced with `pnpm run classes:check`. UNION and LOCAL entries cannot -
@@ -272,7 +288,7 @@ $classes: (
   ),
   'badges': (
     'number': 'numberBadge_lMvXrQ',
-    'text': 'textBadge__463b7',
+    'text': '~textBadge',  // LOCAL: prefix match, survives rotations; ClearVision dropped this entry
   ),
   'button': (
     'button': 'button_9OQtot',
@@ -285,7 +301,7 @@ $classes: (
     'new': (
       'active': 'active_F7qvhY',
       'button': 'button_F7qvhY',
-      'criticalPrimary': 'critical-primary_F7qvhY',  // LOCAL: no upstream entry, maintain by hand
+      'criticalPrimary': '~critical-primary',  // LOCAL: prefix match, survives rotations
       'primary': 'primary_F7qvhY',
       'secondary': 'secondary_F7qvhY',
     ),
@@ -299,10 +315,10 @@ $classes: (
     'minimum': 'minimum_hbKzX7',
     'participantsButton': 'participantsButton_1uD6uZ',
     'pulseGradient': 'pulseGradient_BUFBam',
-    'quickSelectPopout': 'quickSelectPopout_ebaca5',
+    'quickSelectPopout': '~quickSelectPopout',  // LOCAL: prefix match, survives rotations; ClearVision dropped this entry
     'root': 'root_rTsZa_',
     'tileBorder': 'border_7NOr2f',
-    'tileSpeaking': 'speaking__2f4f7',
+    'tileSpeaking': '~speaking',  // LOCAL: prefix match, survives rotations; ClearVision dropped this entry; only used compounded with tileBorder
     'wrapper': 'wrapper_hbKzX7',
   ),
   'channelSettings': (
@@ -328,7 +344,7 @@ $classes: (
     'markup': 'markup_ku1OHH',
     'mentioned': 'mentioned_SY_P2T',
     'mentionWrapper': 'wrapper_NDaLCQ',
-    'message': ('message_d5deea' 'message__5126c'),  // UNION: second class is upstream ClearVision, kept for build drift
+    'message': 'message_SY_P2T',  // LOCAL: upstream still lists message__5126c; read from a live client 2026-11-24
     'noChannel': 'noChannel_RvzdCg',
     'popover': 'popover_DpHsW6',
     'quoteContainer': 'blockquoteContainer_ku1OHH',
@@ -361,7 +377,7 @@ $classes: (
   ),
   'chatForm': (
     'attachmentArea': 'channelAttachmentArea_iH8bsl',
-    'buttonWrapper': ('buttonWrapper_f7ecac' 'buttonWrapper__24af7'),  // UNION: second class is upstream ClearVision, kept for build drift
+    'buttonWrapper': '~buttonWrapper',  // LOCAL: prefix match, survives rotations; two modules carry it, the rule is a transition only
     'channelTextArea': 'channelTextArea_2x8-Qn',
     'form': 'form_z_gUBg',
     'formWithLoadedChatInput': 'formWithLoadedChatInput_z_gUBg',
@@ -372,11 +388,11 @@ $classes: (
     'toolbar': 'toolbar_hPmUPu',
     'typing': 'typing_U9Tvvz',
     'typingBase': 'base_U9Tvvz',
-    'typingDot': 'dot_b88801',  // LOCAL: no upstream entry, maintain by hand
+    'typingDot': '~dot',  // LOCAL: prefix match, survives rotations; generic - only valid under typingBase
     'typingDots': 'dots_C1dbpS',
-    'typingDotsSpans': 'dots_b88801',  // LOCAL: no upstream entry, maintain by hand
+    'typingDotsSpans': '~dots',  // LOCAL: prefix match, survives rotations; generic - only valid under typingBase
     'typingDotsThemed': 'themed_C1dbpS',
-    'typingRow': 'typingDots_b88801',  // LOCAL: no upstream entry, maintain by hand
+    'typingRow': '~typingDots',  // LOCAL: prefix match, survives rotations
     'typingText': 'text_U9Tvvz',
     'upload': 'upload_JyxBSo',
   ),
@@ -451,9 +467,9 @@ $classes: (
   ),
   'header': (
     'addFriend': 'addFriend_zrUwGA',
-    'iconWrapper': ('iconWrapper_ef6e3a' 'iconWrapper__9293f'),  // UNION: second class is upstream ClearVision, kept for build drift
+    'iconWrapper': '~iconWrapper',  // LOCAL: prefix match, survives rotations; also hits other icon wrappers, used for a transition only
     'searchAnswer': 'searchAnswer_tknKcK',
-    'searchBar': 'searchBar__97492',
+    'searchBar': '~searchBar',  // LOCAL: prefix match, survives rotations; header, DM list and friends search alike
     'searchFilter': 'searchFilter_tknKcK',
     'tabBar': 'tabBar_zrUwGA',
   ),
@@ -493,7 +509,6 @@ $classes: (
     'footer': 'footer__KoJTP',
     'header': 'header__KoJTP',
     'root': ('root__KoJTP' 'container_dvN-MP'),
-    'rootContainer': 'container_dvN-MP',  // LOCAL: no upstream entry, maintain by hand
     'keyboard': (
       'modal': 'keyboardShortcutsModal_jCEr5v',
     ),
@@ -504,16 +519,16 @@ $classes: (
       'pillItemSelected': 'pillItemSelected_I4ubrz',
     ),
     'streamPicker': (
-      'ellipsis': 'ellipsis_e529a0',  // LOCAL: no upstream entry, maintain by hand
-      'footer': 'footer_a55fdc',  // LOCAL: no upstream entry, maintain by hand
-      'footerContent': 'footerContent_a55fdc',  // LOCAL: no upstream entry, maintain by hand
-      'header': 'header_a55fdc',  // LOCAL: no upstream entry, maintain by hand
-      'rightButtonGroup': 'rightButtonGroup_a55fdc',  // LOCAL: no upstream entry, maintain by hand
-      'root': 'root_a55fdc',  // LOCAL: no upstream entry, maintain by hand
-      'sourceName': 'sourceOrPresetName_e529a0',  // LOCAL: no upstream entry, maintain by hand
-      'summary': 'summary_e529a0',  // LOCAL: no upstream entry, maintain by hand
-      'summaryDetail': 'summaryDetail_e529a0',  // LOCAL: no upstream entry, maintain by hand
-      'summaryRoot': 'root_e529a0',  // LOCAL: no upstream entry, maintain by hand
+      'ellipsis': '~ellipsis',  // LOCAL: prefix match, survives rotations; generic - anchored in main.scss
+      'footer': '~footer',  // LOCAL: prefix match, survives rotations; generic - anchored in main.scss
+      'footerContent': '~footerContent',  // LOCAL: prefix match, survives rotations; anchored in main.scss
+      'header': '~header',  // LOCAL: prefix match, survives rotations; generic - anchored in main.scss
+      'rightButtonGroup': '~rightButtonGroup',  // LOCAL: prefix match, survives rotations
+      'root': '~root',  // LOCAL: prefix match, survives rotations; generic - anchored in main.scss
+      'sourceName': '~sourceOrPresetName',  // LOCAL: prefix match, survives rotations
+      'summary': '~summary',  // LOCAL: prefix match, survives rotations; generic - anchored in main.scss
+      'summaryDetail': '~summaryDetail',  // LOCAL: prefix match, survives rotations
+      'summaryRoot': '~root',  // LOCAL: prefix match, survives rotations; generic - anchored in main.scss
     ),
     'timeout': (
       'selectorButtonSelected': 'selectorButtonSelected_xCDvT_',
@@ -528,7 +543,7 @@ $classes: (
   'pages': (
     'tags': (
       'pill': 'pill_snX-u4',
-      'selected': 'selected_a2c9e8',
+      'selected': '~selected',  // LOCAL: prefix match, survives rotations; generic - only valid compounded with pill
     ),
   ),
   'pagination': (
@@ -607,10 +622,10 @@ $classes: (
   'profile': (
     'inner': 'inner_P1YEjQ',
     'modal': (
-      'pendingToolbar': 'pendingChangesToolbar_s3DB6Y',  // LOCAL: no upstream entry, maintain by hand
-      'toolbarActions': 'actions_tu5953',  // LOCAL: no upstream entry, maintain by hand
-      'toolbarContent': 'content_tu5953',  // LOCAL: no upstream entry, maintain by hand
-      'toolbarText': 'noticeText_tu5953',  // LOCAL: no upstream entry, maintain by hand
+      'pendingToolbar': '~pendingChangesToolbar',  // LOCAL: prefix match, survives rotations
+      'toolbarActions': '~actions',  // LOCAL: prefix match, survives rotations; generic - only valid under pendingToolbar
+      'toolbarContent': '~content',  // LOCAL: prefix match, survives rotations; generic - only valid under pendingToolbar
+      'toolbarText': '~noticeText',  // LOCAL: prefix match, survives rotations; only valid under pendingToolbar
     ),
     'outer': 'outer_P1YEjQ',
     'overlay': 'overlay_P1YEjQ',
@@ -630,7 +645,7 @@ $classes: (
     'wrap': 'searchResultsWrap_QHVbp3',
   ),
   'searchbar': (
-    'channelSearch': 'search_ea4e51',  // LOCAL: no upstream entry, maintain by hand
+    'channelSearch': '~search',  // LOCAL: prefix match, survives rotations; generic - anchored in main.scss
     'container': 'container_a45028',
     'settings': (
       'container': 'container_isqatr',
@@ -645,8 +660,8 @@ $classes: (
     'standardSidebarView': 'standardSidebarView_jnk11m',
     'card': (
       'card': ('card__73069' 'card_b5dd01'),  // UNION: second class is upstream ClearVision, kept for build drift
-      'editable': ('editable__73069' 'editable_b5dd01'),  // UNION: second class is upstream ClearVision, kept for build drift
-      'primary': ('cardPrimary__73069' 'cardPrimary_b5dd01'),  // UNION: second class is upstream ClearVision, kept for build drift
+      'editable': '~editable',  // LOCAL: prefix match, survives rotations; only used compounded with primary
+      'primary': '~cardPrimary',  // LOCAL: prefix match, survives rotations
     ),
   ),
   'sidebar': (
@@ -696,7 +711,7 @@ $classes: (
         'link': 'link_TNyK-N',
         'muted': 'modeMuted_TNyK-N',
         'name': 'name_TNyK-N',
-        'newChannelBadge': 'newChannel__599fa',
+        'newChannelBadge': '~newChannel',  // LOCAL: prefix match, survives rotations; ClearVision dropped this entry
         'selected': 'modeSelected_TNyK-N',
         'unread': 'modeUnreadImportant_TNyK-N',
         'unreadPill': 'unread_TNyK-N',
@@ -717,7 +732,6 @@ $classes: (
     'fill': 'outerRadioFill_oJuRbG',
     'groupOption': 'radioGroupOption_oJuRbG',
     'indicator': 'radioIndicator_oJuRbG',
-    'label': 'label__64e61',
     'standaloneIndicator': 'standaloneRadioIndicator_oJuRbG',
   ),
   'slider': (
