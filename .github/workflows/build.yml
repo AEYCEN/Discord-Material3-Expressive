@@ -29,9 +29,9 @@ jobs:
 
       # The distributable that users paste into QuickCSS is generated from
       # src/start/_index.scss. If it is stale in the repo, the @import URL and
-      # the version number users see are wrong.
+      # the metadata users see are wrong.
       - name: Check the committed distributable is up to date
-        run: git diff --exit-code -- Material3-Expressive-v1-Vencord.css
+        run: git diff --exit-code -- Material3-Expressive-Vencord.css
 
       # Publishes ./public as the Pages root, so the stylesheet is served at
       # https://<user>.github.io/<repo>/main.css - the URL src/start/_index.scss

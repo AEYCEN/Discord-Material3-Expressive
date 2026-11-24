@@ -15,7 +15,7 @@ theme retunes.
    https://aeycen.github.io/Discord-Material3-Expressive/main.css
    ```
 
-To customise, copy [`Material3-Expressive-v1-Vencord.css`](Material3-Expressive-v1-Vencord.css)
+To customise, copy [`Material3-Expressive-Vencord.css`](Material3-Expressive-Vencord.css)
 into **Settings → Vencord → Themes → Edit QuickCSS** instead. It imports the
 same stylesheet and exposes every `--t-*` token with its default in a comment.
 Delete a line to fall back to its default.
@@ -46,7 +46,7 @@ or run the commands from Git Bash.
 | `src/main.scss`             | The theme. Contains no class hashes.                 |
 | `src/backend/_classes.scss` | Every hashed Discord class, once.                    |
 | `src/backend/_mixins.scss`  | `tone()` - modern-syntax `hsl()` Sass won't rewrite. |
-| `src/start/_index.scss`     | Version, URLs, metadata. Single source of truth.     |
+| `src/start/_index.scss`     | URLs, metadata. Single source of truth.              |
 | `dist/*.scss`               | Sources for the user-facing distributables.          |
 | `public/`                   | Build output, published to GitHub Pages.             |
 

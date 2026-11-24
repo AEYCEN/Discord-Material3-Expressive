@@ -91,7 +91,7 @@ const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 const v = sassVars(await readFile(START, 'utf8'));
-for (const k of ['themeName', 'version', 'desc', 'repo', 'website', 'mainImport']) {
+for (const k of ['themeName', 'desc', 'repo', 'website', 'mainImport']) {
   if (!v[k]) throw new Error(`missing $${k} in src/start/_index.scss`);
 }
 // The token block comes from the expanded build - its comments are the
@@ -341,15 +341,6 @@ h1 {
 }
 
 .meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-
-.chip {
-  padding: 3px 12px;
-  border-radius: var(--t-radius-pill);
-  background: var(--t-primary-container);
-  color: var(--t-on-primary-container);
-  font-family: var(--page-mono);
-  font-size: 13px;
-}
 
 .lede { max-width: 50ch; font-size: clamp(17px, 2vw, 19px); line-height: 1.55; }
 
@@ -693,7 +684,6 @@ footer a { color: var(--t-text-mid); }
   <div class="hero">
     <h1>${esc(v.themeName)}</h1>
     <div class="meta">
-      <span class="chip">v${esc(v.version)}</span>
       <span>for Vencord</span>
     </div>
     <p class="lede">${esc(v.desc)}</p>
@@ -1014,6 +1004,6 @@ for (const asset of ASSETS) {
   }
 }
 
-console.log(`public/index.html written (${html.length} bytes) for ${v.themeName} v${v.version}`);
+console.log(`public/index.html written (${html.length} bytes) for ${v.themeName}`);
 console.log(`  install URL: ${importUrl}`);
 console.log(`  copied ${ASSETS.map((a) => `assets/${a}`).join(', ')} -> public/`);
