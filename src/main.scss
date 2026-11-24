@@ -1067,9 +1067,14 @@ code {
    modal rounds its parts itself (layout container, profile card and editing
    panel all carry their own radius), so releasing the clip costs nothing. Done
    with :has() rather than for the modal as a whole because the toolbar exists
-   only while there are unsaved changes. */
-#{c(modals root)}:has(> #{c(profile modal pendingToolbar)}),
-[role="dialog"] > [class*="root_"]:has(> #{c(profile modal pendingToolbar)}) {
+   only while there are unsaved changes.
+   Matched by attribute, not through c(): this rule decides whether the user can
+   save or leave the editor at all. When the hash rotated, the fallback root
+   selector above kept clipping while the exception stopped matching, and the
+   bar vanished with no way out of the modal. The readable class prefix survives
+   rotations; the hash does not. */
+#{c(modals root)}:has([class*="pendingChangesToolbar_"]),
+[role="dialog"] > [class*="root_"]:has([class*="pendingChangesToolbar_"]) {
     overflow: visible;
 }
 /* The bar: an M3 floating toolbar - high surface, pill, elevation, no outline.
@@ -1364,7 +1369,7 @@ $add-friend: '#{c(header tabBar)} #{c(header addFriend)}#{c(header addFriend)}#{
    wrap in :is() before appending a pseudo-class, otherwise it lands on the last
    selector only. */
 $action-buttons: '#{c(button lookFilled)}:is(#{c(button colorBrand)}, #{c(button colorPrimary)}, #{c(button colorGreen)}, #{c(button colorRed)}), #{c(button lookOutlined)}:is(#{c(button colorBrand)}, #{c(button colorPrimary)}), #{c(button new primary)}, #{c(button new secondary)}, .vc-btn-primary';
-$filled-buttons: '#{c(button lookFilled)}:is(#{c(button colorBrand)}, #{c(button colorPrimary)}, #{c(button colorGreen)}, #{c(button colorRed)}), #{c(button new primary)}, #{c(button new active)}, .critical-primary_a22cb0, .vc-btn-primary';
+$filled-buttons: '#{c(button lookFilled)}:is(#{c(button colorBrand)}, #{c(button colorPrimary)}, #{c(button colorGreen)}, #{c(button colorRed)}), #{c(button new primary)}, #{c(button new active)}, #{c(button new criticalPrimary)}, .vc-btn-primary';
 #{c(button button)},
 #{c(button new button)},
 .vc-btn-primary {
@@ -1413,7 +1418,7 @@ $filled-buttons: '#{c(button lookFilled)}:is(#{c(button colorBrand)}, #{c(button
     border: none;
 }
 #{c(button lookFilled)}#{c(button colorRed)},
-.critical-primary_a22cb0 {
+#{c(button new criticalPrimary)} {
     background: var(--t-danger);
     color: hsl(2 60% 14%);
     border: none;
