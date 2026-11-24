@@ -110,7 +110,7 @@ const themeCss = await readFile(THEME_MIN, 'utf8').catch(() => {
 const previewSrc = await readFile(PREVIEW, 'utf8').catch(() => {
   throw new Error('build/preview.css missing - run build:preview before build:landing');
 });
-const nameBlock = previewSrc.match(/#t-preview-classnames\s*\{([\s\S]*?)\n\}/);
+const nameBlock = previewSrc.match(/#t-preview-classnames\s*\{([\s\S]*?)\n}/);
 if (!nameBlock) throw new Error('no #t-preview-classnames block in build/preview.css');
 
 const CLS = {};
@@ -121,7 +121,7 @@ for (const m of nameBlock[1].matchAll(/--([\w-]+):\s*'([^']+)'/g)) {
   CLS[m[1]] = [...m[2].matchAll(/\.([A-Za-z0-9_-]+)/g)].map((c) => c[1]).join(' ');
   if (!CLS[m[1]]) throw new Error(`class export --${m[1]} resolved to nothing`);
 }
-const previewBase = previewSrc.replace(/#t-preview-classnames\s*\{[\s\S]*?\n\}\n?/, '');
+const previewBase = previewSrc.replace(/#t-preview-classnames\s*\{[\s\S]*?\n}\n?/, '');
 
 /** class attribute from one or more exported names */
 const k = (...names) => names.map((n) => {
@@ -922,7 +922,7 @@ footer a { color: var(--t-text-mid); }
     document.body.appendChild(ta);
     ta.select();
     ta.setSelectionRange(0, text.length);
-    var ok = false;
+    var ok;
     try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
     document.body.removeChild(ta);
     return ok;
