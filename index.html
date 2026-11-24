@@ -1613,7 +1613,7 @@ footer a { color: var(--t-text-mid); }
     document.body.appendChild(ta);
     ta.select();
     ta.setSelectionRange(0, text.length);
-    var ok = false;
+    var ok;
     try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
     document.body.removeChild(ta);
     return ok;
